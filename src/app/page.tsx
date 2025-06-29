@@ -87,6 +87,97 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Testimonials Section */}
+        <div className="mb-20">
+          <div className="text-center mb-16">
+            <h2 className="text-5xl font-bold text-white mb-6">
+              Trusted by <span className="bg-gradient-to-r from-green-400 to-blue-400 bg-clip-text text-transparent">thousands</span> of students
+            </h2>
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
+              & their <span className="text-pink-400 font-semibold">parents</span> across the nation
+            </p>
+          </div>
+
+          <div className="grid lg:grid-cols-2 gap-12 items-center">
+            {/* Video Testimonial */}
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 rounded-3xl blur opacity-75 group-hover:opacity-100 transition duration-500"></div>
+              <div className="relative bg-gray-900 rounded-3xl overflow-hidden shadow-2xl">
+                <div className="aspect-video bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center rounded-2xl overflow-hidden">
+                  {/* REPLACE "YOUR_VIDEO_ID" with actual YouTube video ID */}
+                  <iframe 
+                    className="w-full h-full"
+                    src="https://www.youtube.com/embed/MU4ps6jPdvw?rel=0&modestbranding=1&showinfo=0"
+                    title="MathOnGo Student Success Story - JEE Preparation Testimonial"
+                    frameBorder="0"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                    allowFullScreen
+                  ></iframe>
+                </div>
+              </div>
+            </div>
+
+            {/* Testimonial Content */}
+            <div className="space-y-8">
+              <div className="bg-gradient-to-br from-gray-900/60 to-gray-800/60 backdrop-blur-xl border border-gray-700/50 p-8 rounded-3xl shadow-2xl">
+                <div className="flex items-start space-x-4 mb-6">
+                  <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-bold text-xl">
+                    A
+                  </div>
+                  <div>
+                    <h4 className="text-xl font-bold text-white">Anup Kumar</h4>
+                    <p className="text-blue-400 font-medium">JEE Main Qualifier</p>
+                    <div className="flex text-yellow-400 mt-1">
+                      {'★'.repeat(5)}
+                    </div>
+                  </div>
+                </div>
+                
+                <blockquote className="text-gray-300 text-lg leading-relaxed italic">
+                  "I joined the test series as it was recommended by my friends. The test series was very relevant. It matched with the exact pattern of questions in the real JEE Main exam. The 15-page analysis after every test helped me a lot. The video analysis of Anup sir after every test was also great. It was a great experience."
+                </blockquote>
+              </div>
+
+              {/* Additional mini testimonials */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="bg-gradient-to-br from-gray-900/40 to-gray-800/40 backdrop-blur-xl border border-gray-700/30 p-6 rounded-2xl">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                      R
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">Ravi Sharma</p>
+                      <div className="flex text-yellow-400 text-sm">
+                        {'★'.repeat(5)}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-gray-400 text-sm">
+                    "AI-generated tests were spot on! Improved my Physics score by 40 marks."
+                  </p>
+                </div>
+
+                <div className="bg-gradient-to-br from-gray-900/40 to-gray-800/40 backdrop-blur-xl border border-gray-700/30 p-6 rounded-2xl">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="w-10 h-10 bg-gradient-to-br from-pink-500 to-rose-600 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                      P
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">Priya Singh</p>
+                      <div className="flex text-yellow-400 text-sm">
+                        {'★'.repeat(5)}
+                      </div>
+                    </div>
+                  </div>
+                  <p className="text-gray-400 text-sm">
+                    "The detailed analytics helped me identify my weak areas. Cracked NEET!"
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         {/* CTA Section */}
         <div className="text-center bg-gradient-to-r from-blue-900/30 to-purple-900/30 backdrop-blur-xl border border-blue-500/30 rounded-3xl p-12 shadow-2xl">
           <h2 className="text-4xl font-bold text-white mb-6">
