@@ -1,36 +1,146 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# TestPrep Pro 🚀
 
-## Getting Started
+An AI-powered test preparation platform designed for JEE and NEET aspirants. Upload your PDFs, generate custom tests, and track your performance with detailed analytics.
 
-First, run the development server:
+## ✨ Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- 📄 **PDF Upload & Processing**: Upload previous year question papers
+- 🤖 **AI Question Extraction**: Automatically extract questions from PDFs
+- 📝 **Custom Test Generation**: Create tests with adjustable difficulty levels
+- 📊 **Performance Analytics**: Track your progress across subjects and topics
+- 🎯 **Subject-wise Analysis**: Get insights into Physics, Chemistry, Math, and Biology
+- 📈 **Detailed Reports**: Download comprehensive performance reports
+
+## 🛠️ Tech Stack
+
+- **Frontend**: Next.js 14, React, TypeScript, Tailwind CSS
+- **Backend**: Next.js API Routes, Supabase
+- **Database**: PostgreSQL (Supabase)
+- **Authentication**: Supabase Auth
+- **PDF Processing**: pdf-parse
+- **UI Components**: shadcn/ui, Radix UI
+- **State Management**: Zustand
+- **Deployment**: Vercel
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18+ installed
+- Supabase account
+- Git
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/testprep-pro.git
+   cd testprep-pro
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Set up environment variables**
+   
+   Create a `.env.local` file in the root directory:
+   ```env
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+   NEXTAUTH_SECRET=your_secret_key
+   NEXTAUTH_URL=http://localhost:3000
+   ```
+
+4. **Set up the database**
+   
+   Run the SQL schema in your Supabase SQL Editor (found in `/database/schema.sql`)
+
+5. **Start the development server**
+   ```bash
+   npm run dev
+   ```
+
+6. **Open your browser**
+   
+   Navigate to `http://localhost:3000`
+
+## 📁 Project Structure
+
+```
+src/
+├── app/                    # Next.js app directory
+│   ├── auth/              # Authentication pages
+│   ├── dashboard/         # Dashboard and main app pages
+│   ├── test/              # Test-related pages
+│   └── api/               # API routes
+├── components/            # Reusable UI components
+│   ├── ui/               # shadcn/ui components
+│   ├── auth/             # Authentication components
+│   ├── dashboard/        # Dashboard components
+│   └── test/             # Test-related components
+├── lib/                  # Utility functions
+├── hooks/                # Custom React hooks
+├── types/                # TypeScript type definitions
+└── store/                # State management
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 🗄️ Database Schema
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+The application uses PostgreSQL with the following main tables:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- **profiles**: User profile information
+- **pdfs**: Uploaded PDF documents
+- **subjects**: Available subjects (Physics, Chemistry, Math, Biology)
+- **questions**: Extracted questions from PDFs
+- **tests**: Generated test papers
+- **test_attempts**: User test sessions
+- **test_responses**: Individual question responses
+- **performance_analytics**: User progress tracking
 
-## Learn More
+## 🔧 Development
 
-To learn more about Next.js, take a look at the following resources:
+### Available Scripts
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+### Testing Database Connection
 
-## Deploy on Vercel
+Visit `/test-db` to verify your database connection is working properly.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Visit `/check-env` to verify your environment variables are set correctly.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🚀 Deployment
+
+The application is ready to deploy on Vercel:
+
+1. Push your code to GitHub
+2. Connect your repository to Vercel
+3. Add environment variables in Vercel dashboard
+4. Deploy!
+
+## 🤝 Contributing
+
+This project is being developed as a learning exercise. Feel free to:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## 📝 License
+
+This project is for educational purposes.
+
+## 👨‍💻 Developer
+
+Built with ❤️ by a 10th standard student learning full-stack development!
+
+---
+
+**Note**: This project is under active development. More features coming soon! 🚧

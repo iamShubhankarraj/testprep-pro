@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { BookOpen, Brain, TrendingUp, ArrowRight, Zap, Users, Award, Clock } from 'lucide-react';
 
 export default function Home() {
@@ -28,10 +29,17 @@ export default function Home() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-12">
-            <button className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-8 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-blue-500/25 flex items-center">
-              Get Started Free
-              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
+            <Link href="/auth/register">
+              <button className="group bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white px-8 py-4 rounded-2xl text-lg font-semibold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-blue-500/25 flex items-center">
+                Get Started Free
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </Link>
+            <Link href="/auth/login">
+              <button className="border-2 border-gray-600 hover:border-blue-400 text-gray-300 hover:text-blue-400 px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-blue-950/20 transition-all duration-300 backdrop-blur-sm">
+                Sign In
+              </button>
+            </Link>
             <button className="border-2 border-gray-600 hover:border-blue-400 text-gray-300 hover:text-blue-400 px-8 py-4 rounded-2xl text-lg font-semibold hover:bg-blue-950/20 transition-all duration-300 backdrop-blur-sm">
               Watch Demo
             </button>
@@ -187,10 +195,12 @@ export default function Home() {
             Join thousands of students who've already improved their scores with MathOnGo's AI-powered platform
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <button className="group bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black px-10 py-4 rounded-2xl text-lg font-bold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-yellow-500/25 flex items-center justify-center">
-              Start Free Trial
-              <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
-            </button>
+            <Link href="/auth/register">
+              <button className="group bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-400 hover:to-orange-400 text-black px-10 py-4 rounded-2xl text-lg font-bold transition-all duration-300 transform hover:scale-105 hover:shadow-2xl shadow-yellow-500/25 flex items-center justify-center">
+                Start Free Trial
+                <ArrowRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
+              </button>
+            </Link>
             <button className="border-2 border-gray-600 hover:border-blue-400 text-gray-300 hover:text-blue-400 px-10 py-4 rounded-2xl text-lg font-semibold hover:bg-blue-950/20 transition-all duration-300 backdrop-blur-sm">
               Schedule Demo
             </button>
