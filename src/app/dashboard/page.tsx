@@ -423,33 +423,54 @@ export default function Dashboard() {
                 </Card>
               </div>
 
-              {/* Quick Actions */}
-              <div className="space-y-6">
-                <Card className="bg-white/10 backdrop-blur-xl border-white/20">
-                  <CardHeader>
-                    <CardTitle className="text-white">Quick Actions</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Link href="/test/create">
-                      <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Create Test
-                      </Button>
-                    </Link>
-                    <Link href="/dashboard/upload">
-                      <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
-                        <FileText className="w-4 h-4 mr-2" />
-                        Upload PDF
-                      </Button>
-                    </Link>
-                    <Link href="/dashboard/analytics">
-                      <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
-                        <BarChart3 className="w-4 h-4 mr-2" />
-                        View Analytics
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
+             {/* Quick Actions */}
+<div className="space-y-6">
+  <Card className="bg-white/10 backdrop-blur-xl border-white/20">
+    <CardHeader>
+      <CardTitle className="text-white">Quick Actions</CardTitle>
+    </CardHeader>
+    <CardContent className="space-y-3">
+      {/* Existing buttons */}
+      <Link href="/test/create">
+        <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+          <Plus className="w-4 h-4 mr-2" />
+          Create Test
+        </Button>
+      </Link>
+      <Link href="/dashboard/upload">
+        <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+          <FileText className="w-4 h-4 mr-2" />
+          Upload PDF
+        </Button>
+      </Link>
+      <Link href="/dashboard/analytics">
+        <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+          <BarChart3 className="w-4 h-4 mr-2" />
+          View Analytics
+        </Button>
+      </Link>
+      
+      {/* NEW buttons - Add these three */}
+      <Link href="/dashboard/achievements">
+        <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+          <Trophy className="w-4 h-4 mr-2" />
+          View Achievements
+        </Button>
+      </Link>
+      <Link href="/dashboard/todo">
+        <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+          <CheckCircle className="w-4 h-4 mr-2" />
+          View Todo List
+        </Button>
+      </Link>
+      <Link href="/dashboard/results">
+        <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+          <BarChart3 className="w-4 h-4 mr-2" />
+          View Results
+        </Button>
+      </Link>
+    </CardContent>
+  </Card>
 
                 {/* Recent Activity */}
                 <Card className="bg-white/10 backdrop-blur-xl border-white/20">
