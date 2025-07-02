@@ -34,7 +34,7 @@ export default function LoginPage() {
     }
 
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
@@ -49,7 +49,7 @@ export default function LoginPage() {
           router.refresh()
         }, 1000)
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'An unexpected error occurred' })
     } finally {
       setLoading(false)
@@ -67,7 +67,7 @@ export default function LoginPage() {
       if (error) {
         setMessage({ type: 'error', text: error.message })
       }
-    } catch (error) {
+    } catch {
       setMessage({ type: 'error', text: 'Failed to sign in with Google' })
     }
   }
@@ -214,7 +214,7 @@ export default function LoginPage() {
           {/* Register Link */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
+              Don&apos;t have an account?{' '}
               <Link
                 href="/auth/register"
                 className="font-medium text-blue-600 hover:text-blue-500 transition-colors"

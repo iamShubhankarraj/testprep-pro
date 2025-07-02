@@ -27,17 +27,8 @@ export const useAuth = () => {
     // Get initial session
     const getInitialSession = async () => {
       try {
-        const { data: { session }, error } = await supabase.auth.getSession();
+        const { data: { session } } = await supabase.auth.getSession();
         
-        if (error) {
-          setAuthState({
-            user: null,
-            loading: false,
-            error: error.message,
-          });
-          return;
-        }
-
         setAuthState({
           user: session?.user ?? null,
           loading: false,
@@ -72,19 +63,10 @@ export const useAuth = () => {
     try {
       setAuthState(prev => ({ ...prev, loading: true, error: null }));
       
-      const { data, error } = await supabase.auth.signUp({
+      const { data } = await supabase.auth.signUp({
         email,
         password,
       });
-
-      if (error) {
-        setAuthState(prev => ({
-          ...prev,
-          loading: false,
-          error: error.message,
-        }));
-        return { error: error.message };
-      }
 
       setAuthState(prev => ({
         ...prev,
@@ -93,7 +75,7 @@ export const useAuth = () => {
       }));
 
       return { user: data.user };
-    } catch (error) {
+    } catch {
       setAuthState(prev => ({
         ...prev,
         loading: false,
@@ -107,19 +89,10 @@ export const useAuth = () => {
     try {
       setAuthState(prev => ({ ...prev, loading: true, error: null }));
       
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { data } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
-
-      if (error) {
-        setAuthState(prev => ({
-          ...prev,
-          loading: false,
-          error: error.message,
-        }));
-        return { error: error.message };
-      }
 
       setAuthState(prev => ({
         ...prev,
@@ -128,7 +101,7 @@ export const useAuth = () => {
       }));
 
       return { user: data.user };
-    } catch (error) {
+    } catch {
       setAuthState(prev => ({
         ...prev,
         loading: false,
@@ -142,17 +115,8 @@ export const useAuth = () => {
     try {
       setAuthState(prev => ({ ...prev, loading: true }));
       
-      const { error } = await supabase.auth.signOut();
+      await supabase.auth.signOut();
       
-      if (error) {
-        setAuthState(prev => ({
-          ...prev,
-          loading: false,
-          error: error.message,
-        }));
-        return { error: error.message };
-      }
-
       setAuthState({
         user: null,
         loading: false,
@@ -160,7 +124,7 @@ export const useAuth = () => {
       });
 
       return { success: true };
-    } catch (error) {
+    } catch {
       setAuthState(prev => ({
         ...prev,
         loading: false,
@@ -174,22 +138,13 @@ export const useAuth = () => {
     try {
       setAuthState(prev => ({ ...prev, loading: true, error: null }));
       
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/reset-password`,
       });
 
-      if (error) {
-        setAuthState(prev => ({
-          ...prev,
-          loading: false,
-          error: error.message,
-        }));
-        return { error: error.message };
-      }
-
       setAuthState(prev => ({ ...prev, loading: false }));
       return { success: true };
-    } catch (error) {
+    } catch {
       setAuthState(prev => ({
         ...prev,
         loading: false,

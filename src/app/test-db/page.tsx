@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase'
 
 export default function TestDB() {
   const [status, setStatus] = useState('Testing connection...')
-  const [subjects, setSubjects] = useState<any[]>([])
+  const [subjects, setSubjects] = useState<{id: number, name: string}[]>([])
   const [error, setError] = useState('')
 
   useEffect(() => {
@@ -27,7 +27,7 @@ export default function TestDB() {
       }
       
       // First, test basic connection
-      const { data, error: connectionError } = await supabase
+      const { error: connectionError } = await supabase
         .from('subjects')
         .select('*')
         .limit(1)

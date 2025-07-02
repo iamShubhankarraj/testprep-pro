@@ -1,452 +1,348 @@
-'use client'
+'use client' // This directive must be at the very top
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { 
-  ArrowLeft, 
-  Plus, 
-  Trash2, 
-  Save, 
-  Eye,
-  Clock,
-  Target,
-  BookOpen,
-  Brain
-} from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { supabase } from '@/lib/supabase' // Ensure this path is correct: src/lib/supabase.ts
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Badge } from '@/components/ui/badge'
-import { Alert, AlertDescription } from '@/components/ui/alert'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Loader2, ArrowLeft, PlusCircle, CheckCircle, XCircle } from 'lucide-react'
 
-interface Question {
-  id: string
-  text: string
-  options: string[]
-  correctAnswer: number
-  explanation: string
+// Define interfaces for data fetched from Supabase
+interface Subject {
+  id: number;
+  name: string;
 }
 
-interface TestForm {
-  title: string
-  subject: string
-  difficulty: 'Easy' | 'Medium' | 'Hard'
-  duration: number
-  description: string
-  questions: Question[]
-}
-
-export default function CreateTest() {
-  const [form, setForm] = useState<TestForm>({
-    title: '',
-    subject: '',
-    difficulty: 'Medium',
-    duration: 60,
-    description: '',
-    questions: []
-  })
-  const [currentQuestion, setCurrentQuestion] = useState<Question>({
-    id: '',
-    text: '',
-    options: ['', '', '', ''],
-    correctAnswer: 0,
-    explanation: ''
-  })
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+export default function CreateTestPage() {
   const router = useRouter()
+  const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState<string | null>(null)
+  const [subjects, setSubjects] = useState<Subject[]>([])
+  const [user, setUser] = useState<{ id: string } | null>(null)
 
-  const subjects = ['Physics', 'Chemistry', 'Mathematics', 'Biology']
-  const difficulties = ['Easy', 'Medium', 'Hard']
+  // Form state
+  const [title, setTitle] = useState('')
+  const [description, setDescription] = useState('')
+  const [totalQuestions, setTotalQuestions] = useState<number>(50) // Default to 50
+  const [durationMinutes, setDurationMinutes] = useState<number>(180) // Default to 180 minutes (3 hours)
+  const [difficultyLevel, setDifficultyLevel] = useState<'easy' | 'medium' | 'hard' | 'mixed'>('mixed')
+  const [testType, setTestType] = useState<'practice' | 'mock' | 'custom'>('practice')
+  const [selectedSubjects, setSelectedSubjects] = useState<string[]>([]) // Store array of subject names
 
-  const addQuestion = () => {
-    if (!currentQuestion.text.trim()) {
-      setMessage({ type: 'error', text: 'Please enter a question' })
-      return
-    }
+  useEffect(() => {
+    const loadInitialData = async () => {
+      setLoading(true)
+      try {
+        const { data: { user: supabaseUser }, error: authError } = await supabase.auth.getUser()
 
-    if (currentQuestion.options.some(option => !option.trim())) {
-      setMessage({ type: 'error', text: 'Please fill all options' })
-      return
-    }
+        if (authError || !supabaseUser) {
+          console.error("Authentication error or no user:", authError);
+          router.push('/auth/login'); // Redirect to login if not authenticated
+          return;
+        }
+        setUser({ id: supabaseUser.id });
 
-    const newQuestion: Question = {
-      ...currentQuestion,
-      id: Date.now().toString()
-    }
+        // Fetch subjects from Supabase
+        const { data: subjectsData, error: subjectsError } = await supabase
+          .from('subjects')
+          .select('id, name')
+          .order('name', { ascending: true });
 
-    setForm(prev => ({
-      ...prev,
-      questions: [...prev.questions, newQuestion]
-    }))
+        if (subjectsError) {
+          console.error('Error fetching subjects:', subjectsError);
+          setError('Failed to load subjects. Please try again.');
+        } else {
+          setSubjects(subjectsData || []);
+        }
+      } catch (e: unknown) { // Changed 'any' to 'unknown'
+        console.error("Unexpected error during initial data load:", e);
+        setError(`An unexpected error occurred: ${e instanceof Error ? e.message : String(e)}`); // Type narrowing for error message
+      } finally {
+        setLoading(false);
+      }
+    };
 
-    setCurrentQuestion({
-      id: '',
-      text: '',
-      options: ['', '', '', ''],
-      correctAnswer: 0,
-      explanation: ''
-    })
+    loadInitialData();
+  }, [router]); // Dependency array includes router to avoid lint warnings
 
-    setMessage({ type: 'success', text: 'Question added successfully!' })
+  const handleSubjectToggle = (subjectName: string) => {
+    setSelectedSubjects(prev =>
+      prev.includes(subjectName)
+        ? prev.filter(name => name !== subjectName)
+        : [...prev, subjectName]
+    )
   }
 
-  const removeQuestion = (id: string) => {
-    setForm(prev => ({
-      ...prev,
-      questions: prev.questions.filter(q => q.id !== id)
-    }))
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setSubmitting(true)
+    setError(null)
+    setSuccess(null)
+
+    if (!user) {
+      setError('User not authenticated. Please log in.')
+      setSubmitting(false)
+      return
+    }
+
+    if (!title.trim() || totalQuestions <= 0 || durationMinutes <= 0 || selectedSubjects.length === 0) {
+      setError('Please fill in all required fields (Title, Total Questions, Duration, Subjects).')
+      setSubmitting(false)
+      return
+    }
+
+    try {
+      const { data: insertedTestData, error: insertError } = await supabase // Renamed 'data' to 'insertedTestData' and will use it
+        .from('tests')
+        .insert([
+          {
+            user_id: user.id,
+            title: title.trim(), // Trim whitespace
+            description: description.trim() || null, // Trim and set to null if empty
+            total_questions: totalQuestions,
+            duration_minutes: durationMinutes,
+            difficulty_level: difficultyLevel,
+            test_type: testType,
+            subjects: selectedSubjects, // Store array of subject names
+            is_active: true,
+          },
+        ])
+        .select() // Select the inserted data to confirm
+
+      if (insertError) {
+        throw insertError
+      }
+
+      // Log the inserted data to make the 'insertedTestData' variable used
+      console.log('Successfully created test:', insertedTestData);
+
+      setSuccess('Test created successfully! You can now view it in your dashboard.')
+      // Optionally, clear form or redirect
+      setTitle('')
+      setDescription('')
+      setTotalQuestions(50)
+      setDurationMinutes(180)
+      setDifficultyLevel('mixed')
+      setTestType('practice')
+      setSelectedSubjects([])
+      // router.push('/dashboard/tests'); // Redirect to tests listing page after a short delay
+    } catch (err: unknown) { // Changed 'any' to 'unknown'
+      console.error('Error creating test:', err)
+      setError(`Failed to create test: ${err instanceof Error ? err.message : String(err)}`) // Type narrowing for error message
+    } finally {
+      setSubmitting(false)
+    }
   }
 
-  const handleSaveTest = async () => {
-    if (!form.title.trim()) {
-      setMessage({ type: 'error', text: 'Please enter a test title' })
-      return
-    }
-
-    if (!form.subject) {
-      setMessage({ type: 'error', text: 'Please select a subject' })
-      return
-    }
-
-    if (form.questions.length === 0) {
-      setMessage({ type: 'error', text: 'Please add at least one question' })
-      return
-    }
-
-    // Here you would typically save to your database
-    console.log('Saving test:', form)
-    
-    setMessage({ type: 'success', text: 'Test created successfully! Redirecting...' })
-    
-    setTimeout(() => {
-      router.push('/dashboard')
-    }, 1500)
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+        <div className="text-white text-xl flex items-center">
+          <Loader2 className="w-6 h-6 mr-3 animate-spin" />
+          Loading test creation form...
+        </div>
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header */}
-      <header className="bg-white/10 backdrop-blur-xl border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <Link href="/dashboard">
-                <Button variant="ghost" className="text-white hover:bg-white/10">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Back to Dashboard
-                </Button>
-              </Link>
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-white" />
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6 relative overflow-hidden">
+      {/* Animated background elements (ensure these animations are defined in tailwind.config.js) */}
+      <div className="absolute top-0 left-0 w-80 h-80 bg-blue-600 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob"></div>
+      <div className="absolute top-0 right-0 w-80 h-80 bg-purple-600 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-2000"></div>
+      <div className="absolute bottom-0 left-1/2 w-80 h-80 bg-pink-600 rounded-full mix-blend-multiply filter blur-xl opacity-30 animate-blob animation-delay-4000"></div>
+
+      <div className="relative z-10 max-w-4xl mx-auto py-12">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-10">
+          <div>
+            <h1 className="text-4xl font-extrabold text-white mb-2 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
+              Create New Test
+            </h1>
+            <p className="text-lg text-gray-300">
+              Define the blueprint for your next practice session.
+            </p>
+          </div>
+          <Link href="/dashboard/tests"> {/* Link back to the dashboard tests listing */}
+            <Button
+              variant="outline"
+              className="border-white/30 text-white hover:bg-white/20 hover:text-white transition-all duration-300 shadow-lg hover:shadow-xl rounded-xl px-5 py-3"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Back to Tests
+            </Button>
+          </Link>
+        </div>
+
+        {/* Create Test Card */}
+        <Card className="bg-white/10 backdrop-blur-3xl border-white/20 rounded-3xl shadow-2xl p-8">
+          <CardHeader className="pb-6">
+            <CardTitle className="text-white text-3xl font-bold">Test Details</CardTitle>
+            <p className="text-gray-300 text-md">Fill in the information for your new test.</p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Test Title */}
               <div>
-                <h1 className="text-2xl font-bold text-white">Create Test</h1>
-                <p className="text-sm text-gray-300">Build your custom test</p>
+                <Label htmlFor="title" className="text-white text-lg mb-2 block">Test Title</Label>
+                <Input
+                  id="title"
+                  type="text"
+                  placeholder="e.g., JEE Main Mock Test 1"
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500 rounded-lg p-3"
+                  required
+                />
               </div>
-            </div>
-          </div>
-        </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Test Details */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Basic Information */}
-            <Card className="bg-white/10 backdrop-blur-xl border-white/20">
-              <CardHeader>
-                <CardTitle className="text-white">Test Information</CardTitle>
-                <CardDescription className="text-gray-300">
-                  Set up the basic details for your test
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              {/* Description */}
+              <div>
+                <Label htmlFor="description" className="text-white text-lg mb-2 block">Description (Optional)</Label>
+                <Textarea
+                  id="description"
+                  placeholder="A brief description of the test content or focus."
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="bg-white/10 border-white/20 text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500 rounded-lg p-3 min-h-[100px]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Total Questions */}
                 <div>
-                  <Label htmlFor="title" className="text-white">Test Title</Label>
+                  <Label htmlFor="totalQuestions" className="text-white text-lg mb-2 block">Total Questions</Label>
                   <Input
-                    id="title"
-                    value={form.title}
-                    onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
-                    placeholder="e.g., JEE Main Physics - Mechanics"
-                    className="bg-white/10 border-white/20 text-white placeholder-gray-400"
+                    id="totalQuestions"
+                    type="number"
+                    placeholder="e.g., 50"
+                    value={totalQuestions}
+                    onChange={(e) => setTotalQuestions(parseInt(e.target.value))}
+                    min="1"
+                    className="bg-white/10 border-white/20 text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500 rounded-lg p-3"
+                    required
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="subject" className="text-white">Subject</Label>
-                    <select
-                      id="subject"
-                      value={form.subject}
-                      onChange={(e) => setForm(prev => ({ ...prev, subject: e.target.value }))}
-                      className="w-full bg-white/10 border border-white/20 text-white rounded-lg px-3 py-2"
-                    >
-                      <option value="">Select Subject</option>
-                      {subjects.map(subject => (
-                        <option key={subject} value={subject}>{subject}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="difficulty" className="text-white">Difficulty</Label>
-                    <select
-                      id="difficulty"
-                      value={form.difficulty}
-                      onChange={(e) => setForm(prev => ({ ...prev, difficulty: e.target.value as any }))}
-                      className="w-full bg-white/10 border border-white/20 text-white rounded-lg px-3 py-2"
-                    >
-                      {difficulties.map(difficulty => (
-                        <option key={difficulty} value={difficulty}>{difficulty}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <Label htmlFor="duration" className="text-white">Duration (minutes)</Label>
-                    <Input
-                      id="duration"
-                      type="number"
-                      value={form.duration}
-                      onChange={(e) => setForm(prev => ({ ...prev, duration: parseInt(e.target.value) || 0 }))}
-                      className="bg-white/10 border-white/20 text-white"
-                    />
-                  </div>
-                </div>
-
+                {/* Duration */}
                 <div>
-                  <Label htmlFor="description" className="text-white">Description</Label>
-                  <textarea
-                    id="description"
-                    value={form.description}
-                    onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
-                    placeholder="Describe what this test covers..."
-                    rows={3}
-                    className="w-full bg-white/10 border border-white/20 text-white placeholder-gray-400 rounded-lg px-3 py-2 resize-none"
+                  <Label htmlFor="durationMinutes" className="text-white text-lg mb-2 block">Duration (Minutes)</Label>
+                  <Input
+                    id="durationMinutes"
+                    type="number"
+                    placeholder="e.g., 180"
+                    value={durationMinutes}
+                    onChange={(e) => setDurationMinutes(parseInt(e.target.value))}
+                    min="1"
+                    className="bg-white/10 border-white/20 text-white placeholder-gray-400 focus:ring-blue-500 focus:border-blue-500 rounded-lg p-3"
+                    required
                   />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
 
-            {/* Add Question */}
-            <Card className="bg-white/10 backdrop-blur-xl border-white/20">
-              <CardHeader>
-                <CardTitle className="text-white">Add Question</CardTitle>
-                <CardDescription className="text-gray-300">
-                  Create a new question for your test
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Difficulty Level */}
                 <div>
-                  <Label htmlFor="question" className="text-white">Question</Label>
-                  <textarea
-                    id="question"
-                    value={currentQuestion.text}
-                    onChange={(e) => setCurrentQuestion(prev => ({ ...prev, text: e.target.value }))}
-                    placeholder="Enter your question here..."
-                    rows={3}
-                    className="w-full bg-white/10 border border-white/20 text-white placeholder-gray-400 rounded-lg px-3 py-2 resize-none"
-                  />
+                  <Label htmlFor="difficultyLevel" className="text-white text-lg mb-2 block">Difficulty Level</Label>
+                  <Select value={difficultyLevel} onValueChange={(value: 'easy' | 'medium' | 'hard' | 'mixed') => setDifficultyLevel(value)}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white rounded-lg p-3">
+                      <SelectValue placeholder="Select difficulty" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                      <SelectItem value="easy">Easy</SelectItem>
+                      <SelectItem value="medium">Medium</SelectItem>
+                      <SelectItem value="hard">Hard</SelectItem>
+                      <SelectItem value="mixed">Mixed</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
 
+                {/* Test Type */}
                 <div>
-                  <Label className="text-white">Options</Label>
-                  <div className="space-y-2">
-                    {currentQuestion.options.map((option, index) => (
-                      <div key={index} className="flex items-center space-x-2">
-                        <input
-                          type="radio"
-                          name="correctAnswer"
-                          checked={currentQuestion.correctAnswer === index}
-                          onChange={() => setCurrentQuestion(prev => ({ ...prev, correctAnswer: index }))}
-                          className="text-blue-600"
-                        />
-                        <Input
-                          value={option}
-                          onChange={(e) => {
-                            const newOptions = [...currentQuestion.options]
-                            newOptions[index] = e.target.value
-                            setCurrentQuestion(prev => ({ ...prev, options: newOptions }))
-                          }}
-                          placeholder={`Option ${index + 1}`}
-                          className="bg-white/10 border-white/20 text-white placeholder-gray-400"
-                        />
-                      </div>
-                    ))}
-                  </div>
+                  <Label htmlFor="testType" className="text-white text-lg mb-2 block">Test Type</Label>
+                  <Select value={testType} onValueChange={(value: 'practice' | 'mock' | 'custom') => setTestType(value)}>
+                    <SelectTrigger className="bg-white/10 border-white/20 text-white rounded-lg p-3">
+                      <SelectValue placeholder="Select test type" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-slate-800 border-slate-700 text-white">
+                      <SelectItem value="practice">Practice</SelectItem>
+                      <SelectItem value="mock">Mock Test</SelectItem>
+                      <SelectItem value="custom">Custom</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
+              </div>
 
-                <div>
-                  <Label htmlFor="explanation" className="text-white">Explanation (Optional)</Label>
-                  <textarea
-                    id="explanation"
-                    value={currentQuestion.explanation}
-                    onChange={(e) => setCurrentQuestion(prev => ({ ...prev, explanation: e.target.value }))}
-                    placeholder="Explain why this is the correct answer..."
-                    rows={2}
-                    className="w-full bg-white/10 border border-white/20 text-white placeholder-gray-400 rounded-lg px-3 py-2 resize-none"
-                  />
+              {/* Subjects Multi-Select */}
+              <div>
+                <Label className="text-white text-lg mb-2 block">Subjects</Label>
+                <div className="flex flex-wrap gap-3">
+                  {subjects.length > 0 ? (
+                    subjects.map((subject) => (
+                      <Button
+                        key={subject.id}
+                        type="button"
+                        variant={selectedSubjects.includes(subject.name) ? 'default' : 'outline'}
+                        onClick={() => handleSubjectToggle(subject.name)}
+                        className={`
+                          rounded-full px-5 py-2 text-md transition-all duration-200
+                          ${selectedSubjects.includes(subject.name)
+                            ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white border-transparent shadow-md hover:from-blue-600 hover:to-purple-600'
+                            : 'border-white/30 text-gray-300 hover:bg-white/10 hover:text-white'
+                          }
+                        `}
+                      >
+                        {subject.name}
+                      </Button>
+                    ))
+                  ) : (
+                    <p className="text-gray-400 text-sm">No subjects available. Please add subjects to your database.</p>
+                  )}
                 </div>
+              </div>
 
-                <Button onClick={addQuestion} className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Question
-                </Button>
-              </CardContent>
-            </Card>
-
-            {/* Questions List */}
-            {form.questions.length > 0 && (
-              <Card className="bg-white/10 backdrop-blur-xl border-white/20">
-                <CardHeader>
-                  <CardTitle className="text-white">Questions ({form.questions.length})</CardTitle>
-                  <CardDescription className="text-gray-300">
-                    Review and manage your questions
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {form.questions.map((question, index) => (
-                      <div key={question.id} className="p-4 bg-white/5 rounded-lg border border-white/10">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center space-x-2 mb-2">
-                              <Badge variant="secondary" className="bg-white/10 text-gray-300">
-                                Q{index + 1}
-                              </Badge>
-                              <Badge className="bg-green-100 text-green-800">
-                                Option {question.correctAnswer + 1}
-                              </Badge>
-                            </div>
-                            <p className="text-white mb-2">{question.text}</p>
-                            <div className="grid grid-cols-2 gap-2 text-sm">
-                              {question.options.map((option, optIndex) => (
-                                <div key={optIndex} className={`p-2 rounded ${optIndex === question.correctAnswer ? 'bg-green-500/20 text-green-300' : 'bg-white/5 text-gray-300'}`}>
-                                  {String.fromCharCode(65 + optIndex)}. {option}
-                                </div>
-                              ))}
-                            </div>
-                            {question.explanation && (
-                              <p className="text-gray-400 text-sm mt-2 italic">
-                                {question.explanation}
-                              </p>
-                            )}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => removeQuestion(question.id)}
-                            className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Test Preview */}
-            <Card className="bg-white/10 backdrop-blur-xl border-white/20">
-              <CardHeader>
-                <CardTitle className="text-white">Test Preview</CardTitle>
-                <CardDescription className="text-gray-300">
-                  Quick overview of your test
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Title:</span>
-                    <span className="text-white font-medium">{form.title || 'Untitled Test'}</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Subject:</span>
-                    <Badge variant="secondary" className="bg-white/10 text-gray-300">
-                      {form.subject || 'Not selected'}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Difficulty:</span>
-                    <Badge className={form.difficulty === 'Easy' ? 'bg-green-100 text-green-800' : form.difficulty === 'Medium' ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}>
-                      {form.difficulty}
-                    </Badge>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Duration:</span>
-                    <span className="text-white">{form.duration} min</span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-gray-300">Questions:</span>
-                    <span className="text-white">{form.questions.length}</span>
-                  </div>
+              {/* Submission Status Messages */}
+              {error && (
+                <div className="flex items-center p-4 rounded-xl shadow-md bg-red-500/20 text-red-300 border border-red-400 animate-fade-in">
+                  <XCircle className="w-6 h-6 mr-3" />
+                  <p className="text-lg font-medium">{error}</p>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Actions */}
-            <Card className="bg-white/10 backdrop-blur-xl border-white/20">
-              <CardHeader>
-                <CardTitle className="text-white">Actions</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <Button 
-                  onClick={handleSaveTest}
-                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                >
-                  <Save className="w-4 h-4 mr-2" />
-                  Save Test
-                </Button>
-                <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
-                  <Eye className="w-4 h-4 mr-2" />
-                  Preview Test
-                </Button>
-                <Link href="/dashboard">
-                  <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
-                    Cancel
-                  </Button>
-                </Link>
-              </CardContent>
-            </Card>
-
-            {/* Tips */}
-            <Card className="bg-white/10 backdrop-blur-xl border-white/20">
-              <CardHeader>
-                <CardTitle className="text-white">Tips</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-3 text-sm text-gray-300">
-                <div className="flex items-start space-x-2">
-                  <Target className="w-4 h-4 mt-0.5 text-blue-400" />
-                  <p>Keep questions clear and concise</p>
+              )}
+              {success && (
+                <div className="flex items-center p-4 rounded-xl shadow-md bg-green-500/20 text-green-300 border border-green-400 animate-fade-in">
+                  <CheckCircle className="w-6 h-6 mr-3" />
+                  <p className="text-lg font-medium">{success}</p>
                 </div>
-                <div className="flex items-start space-x-2">
-                  <Clock className="w-4 h-4 mt-0.5 text-green-400" />
-                  <p>Set realistic time limits</p>
-                </div>
-                <div className="flex items-start space-x-2">
-                  <Brain className="w-4 h-4 mt-0.5 text-purple-400" />
-                  <p>Mix easy, medium, and hard questions</p>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+              )}
 
-        {/* Message */}
-        {message && (
-          <Alert className={`mt-6 ${message.type === 'error' ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}>
-            <AlertDescription className={`${message.type === 'error' ? 'text-red-700' : 'text-green-700'}`}>
-              {message.text}
-            </AlertDescription>
-          </Alert>
-        )}
+              {/* Submit Button */}
+              <Button
+                type="submit"
+                disabled={submitting || !user}
+                className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white py-4 px-6 rounded-xl text-xl font-bold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:-translate-y-1"
+              >
+                {submitting ? (
+                  <>
+                    <Loader2 className="w-6 h-6 mr-3 animate-spin" />
+                    Creating Test...
+                  </>
+                ) : (
+                  <>
+                    <PlusCircle className="w-6 h-6 mr-3" />
+                    Create Test
+                  </>
+                )}
+              </Button>
+            </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

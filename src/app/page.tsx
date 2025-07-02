@@ -142,7 +142,7 @@ export default function Home() {
                 </div>
                 
                 <blockquote className="text-gray-300 text-lg leading-relaxed italic">
-                  "I joined the test series as it was recommended by my friends. The test series was very relevant. It matched with the exact pattern of questions in the real JEE Main exam. The 15-page analysis after every test helped me a lot. The video analysis of Anup sir after every test was also great. It was a great experience."
+                  &ldquo;I joined the test series as it was recommended by my friends. The test series was very relevant. It matched with the exact pattern of questions in the real JEE Main exam. The 15-page analysis after every test helped me a lot. The video analysis of Anup sir after every test was also great. It was a great experience.&rdquo;
                 </blockquote>
               </div>
 
@@ -161,7 +161,7 @@ export default function Home() {
                     </div>
                   </div>
                   <p className="text-gray-400 text-sm">
-                    "AI-generated tests were spot on! Improved my Physics score by 40 marks."
+                    &ldquo;AI-generated tests were spot on! Improved my Physics score by 40 marks.&rdquo;
                   </p>
                 </div>
 
@@ -178,7 +178,7 @@ export default function Home() {
                     </div>
                   </div>
                   <p className="text-gray-400 text-sm">
-                    "The detailed analytics helped me identify my weak areas. Cracked NEET!"
+                    &ldquo;The detailed analytics helped me identify my weak areas. Cracked NEET!&rdquo;
                   </p>
                 </div>
               </div>
@@ -192,7 +192,7 @@ export default function Home() {
             Ready to <span className="bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">Transform</span> Your Preparation?
           </h2>
           <p className="text-xl text-gray-300 mb-8 max-w-2xl mx-auto">
-            Join thousands of students who've already improved their scores with MathOnGo's AI-powered platform
+            Join thousands of students who&apos;ve already improved their scores with MathOnGo&apos;s AI-powered platform
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link href="/auth/register">

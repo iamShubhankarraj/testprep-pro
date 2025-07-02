@@ -113,9 +113,10 @@ export default function UploadPage() {
       console.log('Uploaded file data in storage:', uploadData)
       console.log('Inserted PDF metadata into DB.')
 
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       setUploadSuccess(false)
-      setMessage(`Upload failed: ${error.message || 'Unknown error'}`)
+      setMessage(`Upload failed: ${errorMessage}`)
       console.error('Upload error:', error)
     } finally {
       setUploading(false)

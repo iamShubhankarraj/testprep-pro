@@ -2,22 +2,18 @@
 import React from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import {
-  Home,
-  CalendarDays,
-  FileUp,
-  Brain,
-  Award,
-  Hourglass,
-  ListTodo,
-  BarChart2,
-  BookOpenText,
+  BookOpen,
+  FileText,
+  BarChart3,
   CheckCircle,
   Trophy,
-  ClipboardList,
-} from 'lucide-react'; // Importing icons from lucide-react
+  Calendar,
+  Home,
+  Brain,
+  Clipboard
+} from 'lucide-react';
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
@@ -32,7 +28,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
       <aside className="hidden w-64 flex-col border-r bg-white p-4 shadow-lg md:flex rounded-r-xl my-4 ml-4">
         <div className="flex h-16 items-center px-4">
           <Link href="/" className="flex items-center gap-2 font-semibold text-blue-700 text-lg">
-            <BookOpenText className="h-6 w-6" />
+            <BookOpen className="h-6 w-6" />
             <span>TestPrep Pro</span>
           </Link>
         </div>
@@ -53,7 +49,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           </Link>
           <Link href="/dashboard/upload" passHref>
             <Button variant="ghost" className="w-full justify-start rounded-lg px-4 py-2 text-base font-medium text-gray-700 hover:bg-blue-100 hover:text-blue-700 transition-colors duration-200">
-              <FileUp className="mr-3 h-5 w-5" />
+              <FileText className="mr-3 h-5 w-5" />
               Upload PDF
             </Button>
           </Link>
@@ -71,20 +67,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({ children }) => {
           </Link>
           <Link href="/dashboard/analytics" passHref>
             <Button variant="ghost" className="w-full justify-start rounded-lg px-4 py-2 text-base font-medium text-gray-700 hover:bg-blue-100 hover:text-blue-700 transition-colors duration-200">
-              <BarChart2 className="mr-3 h-5 w-5" />
+              <BarChart3 className="mr-3 h-5 w-5" />
               Analytics
             </Button>
           </Link>
           <Link href="/dashboard/todo" passHref>
             <Button variant="ghost" className="w-full justify-start rounded-lg px-4 py-2 text-base font-medium text-gray-700 hover:bg-blue-100 hover:text-blue-700 transition-colors duration-200">
-              <ClipboardList className="mr-3 h-5 w-5" />
+              <Clipboard className="mr-3 h-5 w-5" />
               To-Do List
             </Button>
           </Link>
           {/* Calendar link added here */}
           <Link href="/dashboard/calendar" passHref>
             <Button variant="ghost" className="w-full justify-start rounded-lg px-4 py-2 text-base font-medium text-gray-700 hover:bg-blue-100 hover:text-blue-700 transition-colors duration-200">
-              <CalendarDays className="mr-3 h-5 w-5" />
+              <Calendar className="mr-3 h-5 w-5" />
               Calendar
             </Button>
           </Link>

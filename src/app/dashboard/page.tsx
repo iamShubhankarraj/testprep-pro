@@ -6,32 +6,22 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   BookOpen, 
-  Brain, 
   TrendingUp, 
-  Calendar, 
   Target, 
-  Award, 
   Clock, 
   Plus,
   FileText,
   BarChart3,
-  Settings,
   LogOut,
   User,
   Bell,
   Search,
-  Filter,
   Play,
   CheckCircle,
-  XCircle,
-  AlertCircle,
   Trophy,
   Star,
   Zap,
-  ChevronRight,
-  Eye,
-  Download,
-  Share2
+  Eye
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
