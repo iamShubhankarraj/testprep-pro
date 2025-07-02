@@ -23,9 +23,9 @@ export default function ResultsPage() {
             <p className="text-gray-300">Review your test performance</p>
           </div>
           <Link href="/dashboard">
-            <Button variant="outline" className="border-white/20 text-white hover:bg-white/10">
+            <Button variant="outline" className="border-gray-400 text-gray-400 hover:bg-gray-700 hover:text-white">
               <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
+              back to the center 
             </Button>
           </Link>
         </div>
@@ -40,7 +40,7 @@ export default function ResultsPage() {
               <CardContent className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-gray-300">Score</span>
-                  <span className="text-2xl font-bold text-green-400">{result.score}%</span>
+                  <span className="text-2xl font-bold text-gray-400">{result.score}%</span>
                 </div>
                 <div className="flex items-center space-x-4 text-sm text-gray-300">
                   <div className="flex items-center">
@@ -58,7 +58,7 @@ export default function ResultsPage() {
                 </div>
                 <div className="w-full bg-white/20 rounded-full h-2">
                   <div 
-                    className="bg-gradient-to-r from-green-400 to-blue-500 h-2 rounded-full"
+                    className="bg-gray-400 h-2 rounded-full"
                     style={{ width: `${result.score}%` }}
                   ></div>
                 </div>

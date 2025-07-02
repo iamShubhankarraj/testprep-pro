@@ -432,19 +432,19 @@ export default function Dashboard() {
     <CardContent className="space-y-3">
       {/* Existing buttons */}
       <Link href="/test/create">
-        <Button className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700">
+        <Button className="w-full bg-gray-500 hover:bg-gray-600 text-white">
           <Plus className="w-4 h-4 mr-2" />
           Create Test
         </Button>
       </Link>
       <Link href="/dashboard/upload">
-        <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+        <Button variant="outline" className="w-full border-gray-400 text-gray-200 hover:bg-gray-700 hover:text-white">
           <FileText className="w-4 h-4 mr-2" />
           Upload PDF
         </Button>
       </Link>
       <Link href="/dashboard/analytics">
-        <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+        <Button variant="outline" className="w-full border-gray-400 text-gray-200 hover:bg-gray-700 hover:text-white">
           <BarChart3 className="w-4 h-4 mr-2" />
           View Analytics
         </Button>
@@ -452,19 +452,19 @@ export default function Dashboard() {
       
       {/* NEW buttons - Add these three */}
       <Link href="/dashboard/achievements">
-        <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+        <Button variant="outline" className="w-full border-gray-400 text-gray-200 hover:bg-gray-700 hover:text-white">
           <Trophy className="w-4 h-4 mr-2" />
           View Achievements
         </Button>
       </Link>
       <Link href="/dashboard/todo">
-        <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+        <Button variant="outline" className="w-full border-gray-400 text-gray-200 hover:bg-gray-700 hover:text-white">
           <CheckCircle className="w-4 h-4 mr-2" />
           View Todo List
         </Button>
       </Link>
       <Link href="/dashboard/results">
-        <Button variant="outline" className="w-full border-white/20 text-white hover:bg-white/10">
+        <Button variant="outline" className="w-full border-gray-400 text-gray-200 hover:bg-gray-700 hover:text-white">
           <BarChart3 className="w-4 h-4 mr-2" />
           View Results
         </Button>
