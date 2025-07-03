@@ -1,4 +1,5 @@
-// src/app/test/page.tsx
+'use client' // This directive is necessary for client-side functionality like Link and Button
+
 import Link from 'next/link';
 import { Button } from '@/components/ui/button'; // Assuming shadcn/ui button
 import { PlusCircle, List, ArrowLeft } from 'lucide-react';

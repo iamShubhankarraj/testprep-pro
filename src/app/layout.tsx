@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-
+// src/app/layout.tsx
+import './globals.css' // This line should be present
+// ... other imports
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
