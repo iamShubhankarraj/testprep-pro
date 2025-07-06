@@ -83,6 +83,17 @@ const router = useRouter()
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('User not authenticated')
       // Step 1: Create the test
+      console.log('Test insert data:', {
+        user_id: user.id,
+        title: testTitle.trim(),
+        description: testDescription.trim() || null,
+        total_questions: questionsExtracted,
+        duration_minutes: testDuration,
+        difficulty_level: 'mixed',
+        test_type: 'practice',
+        subjects: null,
+        is_active: true
+      });
       const { data: testData, error: testError } = await supabase
         .from('tests')
         .insert([{
@@ -124,8 +135,12 @@ const router = useRouter()
       setCreatedTestId(testData.id)
       setShowTestForm(false)
     } catch (error) {
-      console.error('Error creating test:', error)
-      setMessage(`❌ Failed to create test: ${error instanceof Error ? error.message : 'Unknown error'}`)
+      console.error('Error creating test:', error, JSON.stringify(error));
+      setMessage(`❌ Failed to create test: ${
+        error && typeof error === 'object' && 'message' in error
+          ? error.message
+          : JSON.stringify(error) || 'Unknown error'
+      }`);
     } finally {
       setCreatingTest(false)
     }
