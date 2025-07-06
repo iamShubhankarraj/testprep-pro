@@ -161,10 +161,15 @@ export default function TestTakingPage() {
           throw new Error(questionsError?.message || 'No questions found for this test.');
         }
 
-        // Filter out any null 'questions' objects that might result from join issues
-        const validQuestions = testQuestionsData.filter(tq => tq.questions !== null) as unknown as TestQuestionWithDetails[];
-        setQuestions(validQuestions);
+       // Filter out any null 'questions' objects that might result from join issues
+const validQuestions = testQuestionsData.filter(tq => tq.questions !== null) as unknown as TestQuestionWithDetails[];
 
+// DEBUG: Log what we're getting
+console.log('🔍 Raw test questions data:', testQuestionsData);
+console.log('✅ Valid questions after filtering:', validQuestions);
+console.log('📊 Number of questions found:', validQuestions.length);
+
+setQuestions(validQuestions);
         // 3. Create a new Test Attempt record
         const { data: attemptData, error: attemptError } = await supabase
           .from('test_attempts')
