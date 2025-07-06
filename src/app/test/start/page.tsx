@@ -285,7 +285,7 @@ setQuestions(validQuestions);
       console.log('Test submitted successfully (basic status update).');
 
       // Redirect to a results or dashboard page
-      router.push(`/test/${testId}/results?attemptId=${testAttemptId}`); // Example redirect
+      router.push(`/dashboard/results?testId=${testId}&attemptId=${testAttemptId}`);
     } catch (err: unknown) {
       console.error('Error submitting test:', err);
       setError(`Failed to submit test: ${err instanceof Error ? err.message : String(err)}`);
