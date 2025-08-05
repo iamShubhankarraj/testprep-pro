@@ -1,715 +1,878 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import {
-  BookOpen,
-  Brain,
-  TrendingUp,
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Progress } from '@/components/ui/progress'
+import { 
+  BookOpen, 
+  TrendingUp, 
+  Clock, 
+  Target, 
+  Zap, 
   Calendar,
-  Target,
-  Award,
-  Clock,
+  ArrowRight,
   Plus,
-  FileText,
   BarChart3,
-  Settings,
-  LogOut,
-  User,
-  Bell,
-  Search,
-  Filter,
-  Play,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
   Trophy,
   Star,
-  Zap,
+  Flame,
   ChevronRight,
-  Eye,
-  Download,
-  Share2,
-  Loader2
+  Activity,
+  Upload,
+  FileText,
+  PieChart,
+  LineChart,
+  CheckCircle
 } from 'lucide-react'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Badge } from '@/components/ui/badge'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Progress } from '@/components/ui/progress'
+import Link from 'next/link'
+import { supabase } from '@/lib/supabase'
 
-// Interfaces matching your Supabase table structures
-interface UserProfile {
+interface DashboardStats {
+  totalTests: number
+  totalQuestions: number
+  averageScore: number
+  studyStreak: number
+  testsCompleted: number
+  totalStudyTime: number
+}
+
+interface RecentTest {
   id: string
-  email: string
-  full_name: string | null
+  title: string
+  score: number
+  totalQuestions: number
+  completedAt: string
+  duration: number
 }
 
-interface TestDefinition {
-  id: string;
-  user_id: string; // The ID of the user who created this test definition
-  title: string;
-  description: string | null;
-  total_questions: number;
-  duration_minutes: number;
-  difficulty_level: 'easy' | 'medium' | 'hard' | 'mixed';
-  test_type: 'practice' | 'mock' | 'custom';
-  subjects: string[] | null; // Array of subject names
-  created_at: string;
-  is_active: boolean;
+interface UpcomingTest {
+  id: string
+  title: string
+  scheduledFor: string
+  difficulty: string
+  questionCount: number
 }
 
-interface TestAttempt {
-  id: string;
-  user_id: string;
-  test_id: string;
-  started_at: string;
-  completed_at: string | null;
-  time_taken_minutes: number | null;
-  total_questions: number;
-  attempted_questions: number;
-  correct_answers: number | null;
-  incorrect_answers: number | null;
-  score: number | null; // DECIMAL(5,2) from DB, so number in TS
-  raw_score: number | null;
-  max_possible_score: number;
-  status: 'in_progress' | 'completed' | 'abandoned';
-  created_at: string;
-  // Supabase join will put test definition data under 'tests' key
-  tests?: TestDefinition; // Joined test definition
-}
-
-interface PerformanceAnalytics {
-  id: string;
-  user_id: string;
-  subject_id: number | null;
-  topic_id: number | null;
-  total_questions_attempted: number;
-  correct_answers: number;
-  accuracy_percentage: number;
-  average_time_per_question: number;
-  strength_level: 'weak' | 'average' | 'strong';
-  last_updated: string;
-  created_at: string;
-  // You might join subjects/topics here if you want their names
-  subjects?: { name: string }; // Example if joining subjects table
-  topics?: { name: string }; // Example if joining topics table
-  tests_taken?: number; // Assuming this might be part of analytics later
-  improvement_percentage?: number; // Assuming this might be part of analytics later
-}
-
-export default function Dashboard() {
-  const [user, setUser] = useState<UserProfile | null>(null)
+export default function DashboardPage() {
+  const [stats, setStats] = useState<DashboardStats>({
+    totalTests: 0,
+    totalQuestions: 0,
+    averageScore: 0,
+    studyStreak: 0,
+    testsCompleted: 0,
+    totalStudyTime: 0
+  })
+  
+  const [recentTests, setRecentTests] = useState<RecentTest[]>([])
+  const [upcomingTests, setUpcomingTests] = useState<UpcomingTest[]>([])
   const [loading, setLoading] = useState(true)
-  const [availableTests, setAvailableTests] = useState<TestDefinition[]>([])
-  const [testAttempts, setTestAttempts] = useState<TestAttempt[]>([])
-  const [performanceAnalytics, setPerformanceAnalytics] = useState<PerformanceAnalytics[]>([])
-  const [selectedSubject, setSelectedSubject] = useState<string>('All')
-  const [searchQuery, setSearchQuery] = useState('')
-  const router = useRouter()
+  const [userName, setUserName] = useState('Student')
 
   useEffect(() => {
-    const initDashboard = async () => {
-      setLoading(true)
-      const { data: { user: supabaseUser } } = await supabase.auth.getUser()
-      if (!supabaseUser) {
-        router.push('/auth/login')
-        setLoading(false)
-        return
-      }
+    fetchDashboardData()
+  }, [])
 
-      // 1. Fetch user profile
-      const { data: profile, error: profileError } = await supabase
+  const fetchDashboardData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      // Fetch user profile
+      const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name, email')
-        .eq('id', supabaseUser.id)
+        .select('full_name')
+        .eq('id', user.id)
         .single()
 
-      if (profileError || !profile) {
-        console.error('Error fetching user profile:', profileError)
-        // Fallback for new users or profile not yet created
-        setUser({ id: supabaseUser.id, email: supabaseUser.email || '', full_name: supabaseUser.user_metadata?.full_name || 'Student' })
-      } else {
-        setUser({ id: supabaseUser.id, email: profile.email || supabaseUser.email || '', full_name: profile.full_name || 'Student' })
+      if (profile?.full_name) {
+        setUserName(profile.full_name.split(' ')[0])
       }
 
-      // 2. Fetch all available test definitions (from 'tests' table)
-      // IMPORTANT: Ensure your RLS policy on 'public.tests' allows SELECT for authenticated users.
-      const { data: testsData, error: testsError } = await supabase
-        .from('tests')
-        .select('*')
-        .order('title', { ascending: true });
+      // Mock data for demonstration - replace with actual queries
+      setStats({
+        totalTests: 12,
+        totalQuestions: 450,
+        averageScore: 78,
+        studyStreak: 7,
+        testsCompleted: 8,
+        totalStudyTime: 24
+      })
 
-      if (testsError) {
-        console.error('Error fetching available tests:', testsError);
-      } else {
-        setAvailableTests(testsData as TestDefinition[]);
-      }
+      setRecentTests([
+        {
+          id: '1',
+          title: 'Physics Chapter 1',
+          score: 85,
+          totalQuestions: 25,
+          completedAt: '2024-01-15',
+          duration: 45
+        },
+        {
+          id: '2',
+          title: 'Mathematics Algebra',
+          score: 72,
+          totalQuestions: 30,
+          completedAt: '2024-01-14',
+          duration: 60
+        }
+      ])
 
-      // 3. Fetch user's test attempts (from 'test_attempts' table)
-      // Joining 'tests' table to get test definition details for each attempt
-      const { data: attemptsData, error: attemptsError } = await supabase
-        .from('test_attempts')
-        .select(`
-          *,
-          tests (title, duration_minutes, difficulty_level, subjects)
-        `)
-        .eq('user_id', supabaseUser.id)
-        .order('created_at', { ascending: false });
+      setUpcomingTests([
+        {
+          id: '3',
+          title: 'Chemistry Organic',
+          scheduledFor: '2024-01-20',
+          difficulty: 'Hard',
+          questionCount: 40
+        }
+      ])
 
-      if (attemptsError) {
-        console.error('Error fetching test attempts:', attemptsError);
-      } else {
-        setTestAttempts(attemptsData as TestAttempt[]);
-      }
-
-      // 4. Fetch performance analytics (from 'performance_analytics' table)
-      // Joining 'subjects' table to get subject names
-      const { data: performanceData, error: performanceError } = await supabase
-        .from('performance_analytics')
-        .select(`
-          *,
-          subjects (name)
-        `)
-        .eq('user_id', supabaseUser.id)
-        .order('subject_id', { ascending: true }); // Order by subject for consistent display
-
-      if (performanceError) {
-        console.error('Error fetching performance analytics:', performanceError);
-      } else {
-        setPerformanceAnalytics(performanceData as PerformanceAnalytics[]);
-      }
-
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error)
+    } finally {
       setLoading(false)
     }
-
-    initDashboard()
-  }, [router])
-
-  const handleSignOut = async () => {
-    try {
-      await supabase.auth.signOut()
-      router.push('/')
-    } catch (error) {
-      console.error('Error signing out:', error)
-      router.push('/')
-    }
   }
-
-  const getDifficultyColor = (difficulty: string) => {
-    switch (difficulty) {
-      case 'easy': return 'bg-green-100 text-green-800'
-      case 'medium': return 'bg-yellow-100 text-yellow-800'
-      case 'hard': return 'bg-red-100 text-red-800'
-      case 'mixed': return 'bg-blue-100 text-blue-800' // For mixed difficulty
-      default: return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  const getScoreColor = (score: number | null | undefined) => {
-    if (score === null || score === undefined) return 'text-gray-400';
-    if (score >= 80) return 'text-green-600'
-    if (score >= 60) return 'text-yellow-600'
-    return 'text-red-600'
-  }
-
-  const getScoreGrade = (score: number | null | undefined) => {
-    if (score === null || score === undefined) return 'N/A';
-    if (score >= 90) return 'A+'
-    if (score >= 80) return 'A'
-    if (score >= 70) return 'B'
-    if (score >= 60) return 'C'
-    return 'D'
-  }
-
-  // Filter available tests (definitions) based on search and subject
-  const filteredAvailableTests = availableTests.filter(test => {
-    const matchesSearch = test.title.toLowerCase().includes(searchQuery.toLowerCase())
-    // Check if the test's subjects array includes the selected subject
-    const matchesSubject = selectedSubject === 'All' || (test.subjects && test.subjects.includes(selectedSubject))
-    return matchesSearch && matchesSubject
-  })
-
-  const completedTests = testAttempts.filter(attempt => attempt.status === 'completed')
-  const averageScore = completedTests.length > 0
-    ? Math.round(completedTests.reduce((sum, attempt) => sum + (attempt.score || 0), 0) / completedTests.length)
-    : 0
-
-  const totalStudyTime = completedTests.reduce((sum, attempt) => sum + (attempt.time_taken_minutes || 0), 0)
-  const totalQuestionsAttemptedOverall = completedTests.reduce((sum, attempt) => sum + (attempt.total_questions || 0), 0)
-  const correctAnswersOverall = completedTests.reduce((sum, attempt) => sum + (attempt.correct_answers || 0), 0)
-  const accuracyRate = totalQuestionsAttemptedOverall > 0 ? Math.round((correctAnswersOverall / totalQuestionsAttemptedOverall) * 100) : 0
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
-        <div className="text-white text-xl flex items-center">
-          <Loader2 className="w-6 h-6 mr-3 animate-spin" />
-          Loading dashboard...
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 text-lg">Loading your dashboard...</p>
         </div>
       </div>
     )
   }
 
-  if (!user) {
-    return null // Should redirect to login by checkUser, but good to have
-  }
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      {/* Header */}
-      <header className="bg-white/10 backdrop-blur-xl border-b border-white/20">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center space-x-4">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-                <BookOpen className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h1 className="text-2xl font-bold text-white">MathOnGo</h1>
-                <p className="text-sm text-gray-300">Dashboard</p>
-              </div>
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-gradient-to-br from-blue-400/20 to-purple-600/20 rounded-full blur-3xl animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-gradient-to-br from-pink-400/20 to-red-600/20 rounded-full blur-3xl animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-gradient-to-br from-yellow-400/20 to-orange-600/20 rounded-full blur-3xl animate-blob animation-delay-4000"></div>
+      </div>
+
+      {/* Grid Pattern Overlay */}
+      <div className="absolute inset-0 bg-[url('data:image/svg+xml,%3Csvg width=&quot;60&quot; height=&quot;60&quot; viewBox=&quot;0 0 60 60&quot; xmlns=&quot;http://www.w3.org/2000/svg&quot;%3E%3Cg fill=&quot;none&quot; fill-rule=&quot;evenodd&quot;%3E%3Cg fill=&quot;%239C92AC&quot; fill-opacity=&quot;0.03&quot;%3E%3Ccircle cx=&quot;30&quot; cy=&quot;30&quot; r=&quot;1&quot;/%3E%3C/g%3E%3C/g%3E%3C/svg%3E')] opacity-40"></div>
+
+      <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Header Section */}
+        <div className="mb-12">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between">
+            <div className="mb-6 lg:mb-0">
+              <h1 className="text-4xl lg:text-5xl font-black text-gray-900 mb-2">
+                Welcome back, 
+                <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 bg-clip-text text-transparent block lg:inline lg:ml-3">
+                  {userName}! 👋
+                </span>
+              </h1>
+              <p className="text-xl text-gray-600 max-w-2xl">
+                Ready to continue your learning journey? Let&apos;s make today count!
+              </p>
             </div>
-            <div className="flex items-center space-x-4">
-              <button className="p-2 text-gray-300 hover:text-white transition-colors relative">
-                <Bell className="w-5 h-5" />
-                {/* <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></span> */}
-              </button>
-              <div className="flex items-center space-x-2">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                  <User className="w-4 h-4 text-white" />
-                </div>
-                <span className="text-white font-medium">{user?.full_name}</span>
-              </div>
-              <button
-                onClick={handleSignOut}
-                className="p-2 text-gray-300 hover:text-white transition-colors"
-              >
-                <LogOut className="w-5 h-5" />
-              </button>
+            
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Link href="/dashboard/upload">
+                <Button className="bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600 hover:from-blue-700 hover:via-purple-700 hover:to-pink-700 text-white px-8 py-4 rounded-2xl text-lg font-bold shadow-xl hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+                  <Upload className="w-5 h-5 mr-2" />
+                  Upload PDF
+                </Button>
+              </Link>
+              <Link href="/test/create">
+                <Button variant="outline" className="border-2 border-gray-300 text-gray-700 hover:bg-white hover:border-gray-400 px-8 py-4 rounded-2xl text-lg font-semibold shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300">
+                  <Plus className="w-5 h-5 mr-2" />
+                  Create Test
+                </Button>
+              </Link>
             </div>
           </div>
         </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Welcome Section */}
-        <div className="mb-8">
-          <h2 className="text-3xl font-bold text-white mb-2">
-            Welcome back, {user?.full_name}! 👋
-          </h2>
-          <p className="text-gray-300">
-            Your test preparation journey continues with AI-powered insights
-          </p>
-        </div>
-
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <Card className="bg-white/10 backdrop-blur-xl border-white/20 rounded-xl shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-300">Tests Completed</p>
-                  <p className="text-2xl font-bold text-white">{completedTests.length}</p>
-                  <p className="text-xs text-green-400">
-                    {completedTests.length > 0 ? `+${completedTests.length} total` : 'No tests yet'}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-blue-500/20 rounded-xl flex items-center justify-center">
-                  <CheckCircle className="w-6 h-6 text-blue-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/10 backdrop-blur-xl border-white/20 rounded-xl shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-300">Average Score</p>
-                  <p className="text-2xl font-bold text-white">{averageScore}%</p>
-                  <p className="text-xs text-green-400">
-                    {averageScore > 0 ? `Good progress!` : 'Take a test to see score'}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-green-500/20 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="w-6 h-6 text-green-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/10 backdrop-blur-xl border-white/20 rounded-xl shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-300">Total Study Time</p>
-                  <p className="text-2xl font-bold text-white">{Math.floor(totalStudyTime / 60)}h {totalStudyTime % 60}m</p>
-                  <p className="text-xs text-blue-400">
-                    Overall study time
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-purple-500/20 rounded-xl flex items-center justify-center">
-                  <Clock className="w-6 h-6 text-purple-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/10 backdrop-blur-xl border-white/20 rounded-xl shadow-lg">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-300">Accuracy Rate</p>
-                  <p className="text-2xl font-bold text-white">{accuracyRate}%</p>
-                  <p className="text-xs text-yellow-400">
-                    {accuracyRate > 0 ? `Keep it up!` : 'Attempt questions to see accuracy'}
-                  </p>
-                </div>
-                <div className="w-12 h-12 bg-orange-500/20 rounded-xl flex items-center justify-center">
-                  <Target className="w-6 h-6 text-orange-400" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Main Dashboard Content */}
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="bg-white/10 backdrop-blur-xl border-white/20 rounded-xl p-1">
-            <TabsTrigger value="overview" className="text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-md rounded-lg px-4 py-2 transition-all duration-200">
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="tests" className="text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-md rounded-lg px-4 py-2 transition-all duration-200">
-              Tests
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-md rounded-lg px-4 py-2 transition-all duration-200">
-              Analytics
-            </TabsTrigger>
-            <TabsTrigger value="achievements" className="text-white data-[state=active]:bg-white/20 data-[state=active]:shadow-md rounded-lg px-4 py-2 transition-all duration-200">
-              Achievements
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Overview Tab */}
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Performance Chart */}
-              <div className="lg:col-span-2">
-                <Card className="bg-white/10 backdrop-blur-xl border-white/20 rounded-xl shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="text-white">Performance Overview</CardTitle>
-                    <CardDescription className="text-gray-300">
-                      Your progress across all subjects
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {performanceAnalytics.length > 0 ? (
-                        performanceAnalytics.map((pa) => (
-                          <div key={pa.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
-                            <div className="flex items-center space-x-4">
-                              <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
-                                <span className="text-white font-bold text-sm">{pa.subjects?.name ? pa.subjects.name[0] : 'N/A'}</span>
-                              </div>
-                              <div>
-                                <h3 className="font-semibold text-white">{pa.subjects?.name || 'Unknown Subject'}</h3>
-                                <p className="text-sm text-gray-400">{pa.total_questions_attempted} questions attempted</p>
-                              </div>
-                            </div>
-                            <div className="text-right">
-                              <p className={`font-bold ${getScoreColor(pa.accuracy_percentage)}`}>
-                                {pa.accuracy_percentage}%
-                              </p>
-                              {/* Assuming improvement_percentage might be calculated later */}
-                              {/* {pa.improvement_percentage > 0 && (
-                                <p className="text-xs text-green-400">+{pa.improvement_percentage}%</p>
-                              )} */}
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-400 text-center">No performance data yet. Take some tests!</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Quick Actions */}
-              <div className="space-y-6">
-                <Card className="bg-white/10 backdrop-blur-xl border-white/20 rounded-xl shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="text-white">Quick Actions</CardTitle>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    <Link href="/test/create">
-                      <Button className="w-full bg-gradient-to-r from-green-500 to-teal-500 hover:from-green-600 hover:to-teal-600 text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-xl">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Create Test
-                      </Button>
-                    </Link>
-                    <Link href="/dashboard/upload">
-                      <Button variant="outline" className="w-full border-white/30 text-white hover:bg-white/20 hover:text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-xl">
-                        <FileText className="w-4 h-4 mr-2" />
-                        Upload PDF
-                      </Button>
-                    </Link>
-                    <Link href="/dashboard/analytics">
-                      <Button variant="outline" className="w-full border-white/30 text-white hover:bg-white/20 hover:text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-xl">
-                        <BarChart3 className="w-4 h-4 mr-2" />
-                        View Analytics
-                      </Button>
-                    </Link>
-                    <Link href="/dashboard/achievements">
-                      <Button variant="outline" className="w-full border-white/30 text-white hover:bg-white/20 hover:text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-xl">
-                        <Trophy className="w-4 h-4 mr-2" />
-                        View Achievements
-                      </Button>
-                    </Link>
-                    <Link href="/dashboard/todo">
-                      <Button variant="outline" className="w-full border-white/30 text-white hover:bg-white/20 hover:text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-xl">
-                        <CheckCircle className="w-4 h-4 mr-2" />
-                        View Todo List
-                      </Button>
-                    </Link>
-                    <Link href="/dashboard/results">
-                      <Button variant="outline" className="w-full border-white/30 text-white hover:bg-white/20 hover:text-white shadow-md hover:shadow-lg transition-all duration-300 rounded-xl">
-                        <BarChart3 className="w-4 h-4 mr-2" /> {/* Reusing BarChart3 for results */}
-                        View Results
-                      </Button>
-                    </Link>
-                  </CardContent>
-                </Card>
-
-                {/* Recent Activity */}
-                <Card className="bg-white/10 backdrop-blur-xl border-white/20 rounded-xl shadow-lg">
-                  <CardHeader>
-                    <CardTitle className="text-white">Recent Activity</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="space-y-4">
-                      {completedTests.length > 0 ? (
-                        completedTests.slice(0, 3).map((attempt) => (
-                          <div key={attempt.id} className="flex items-center justify-between p-3 bg-white/5 rounded-lg border border-white/10">
-                            <div>
-                              <h4 className="font-medium text-white text-sm">{attempt.tests?.title || 'Unknown Test'}</h4>
-                              <p className="text-xs text-gray-400">{attempt.completed_at ? new Date(attempt.completed_at).toLocaleDateString() : 'N/A'}</p>
-                            </div>
-                            <div className="text-right">
-                              <p className={`font-semibold ${getScoreColor(attempt.score)}`}>
-                                {attempt.score}%
-                              </p>
-                              <Badge className={getDifficultyColor(attempt.tests?.difficulty_level || 'medium')}>
-                                {attempt.tests?.difficulty_level || 'N/A'}
-                              </Badge>
-                            </div>
-                          </div>
-                        ))
-                      ) : (
-                        <p className="text-gray-400 text-center">No recent test activity.</p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </div>
-            </div>
-          </TabsContent>
-
-          {/* Tests Tab */}
-          <TabsContent value="tests" className="space-y-6">
-            <Card className="bg-white/10 backdrop-blur-xl border-white/20 rounded-xl shadow-lg">
-              <CardHeader>
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          {/* Total Tests */}
+          <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-3xl overflow-hidden hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-1">
+              <div className="bg-white rounded-3xl p-6">
                 <div className="flex items-center justify-between">
                   <div>
-                    <CardTitle className="text-white">Available Tests</CardTitle>
-                    <CardDescription className="text-gray-300">
-                      Continue your preparation with these tests
-                    </CardDescription>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Total Tests</p>
+                    <p className="text-3xl font-black text-gray-900">{stats.totalTests}</p>
+                    <p className="text-sm text-green-600 font-medium flex items-center mt-1">
+                      <TrendingUp className="w-4 h-4 mr-1" />
+                      +2 this week
+                    </p>
                   </div>
-                  <div className="flex items-center space-x-2">
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                      <Input
-                        placeholder="Search tests..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        className="pl-10 bg-white/10 border-white/20 text-white placeholder-gray-400 w-64 focus:ring-blue-500 focus:border-blue-500 rounded-lg"
-                      />
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-blue-500 rounded-2xl blur-lg opacity-20"></div>
+                    <div className="relative bg-gradient-to-br from-blue-500 to-purple-600 p-4 rounded-2xl">
+                      <FileText className="w-8 h-8 text-white" />
                     </div>
-                    <select
-                      value={selectedSubject}
-                      onChange={(e) => setSelectedSubject(e.target.value)}
-                      className="bg-white/10 border border-white/20 text-white rounded-lg px-3 py-2 focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      <option value="All">All Subjects</option>
-                      {/* These options should ideally be fetched dynamically from your 'subjects' table */}
-                      <option value="Physics">Physics</option>
-                      <option value="Chemistry">Chemistry</option>
-                      <option value="Mathematics">Mathematics</option>
-                      <option value="Biology">Biology</option>
-                    </select>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {filteredAvailableTests.length > 0 ? (
-                    filteredAvailableTests.map((test) => (
-                      <div key={test.id} className="flex items-center justify-between p-6 bg-white/5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors shadow-sm hover:shadow-md">
-                        <div className="flex items-center space-x-4">
-                          <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-xl flex items-center justify-center flex-shrink-0">
-                            <FileText className="w-8 h-8 text-white" />
+              </div>
+            </div>
+          </Card>
+
+          {/* Average Score */}
+          <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-3xl overflow-hidden hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-gradient-to-r from-green-500 to-emerald-600 p-1">
+              <div className="bg-white rounded-3xl p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Average Score</p>
+                    <p className="text-3xl font-black text-gray-900">{stats.averageScore}%</p>
+                    <p className="text-sm text-green-600 font-medium flex items-center mt-1">
+                      <TrendingUp className="w-4 h-4 mr-1" />
+                      +5% improvement
+                    </p>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-green-500 rounded-2xl blur-lg opacity-20"></div>
+                    <div className="relative bg-gradient-to-br from-green-500 to-emerald-600 p-4 rounded-2xl">
+                      <Trophy className="w-8 h-8 text-white" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Study Streak */}
+          <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-3xl overflow-hidden hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-gradient-to-r from-orange-500 to-red-600 p-1">
+              <div className="bg-white rounded-3xl p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Study Streak</p>
+                    <p className="text-3xl font-black text-gray-900">{stats.studyStreak} days</p>
+                    <p className="text-sm text-orange-600 font-medium flex items-center mt-1">
+                      <Flame className="w-4 h-4 mr-1" />
+                      Keep it up!
+                    </p>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-orange-500 rounded-2xl blur-lg opacity-20"></div>
+                    <div className="relative bg-gradient-to-br from-orange-500 to-red-600 p-4 rounded-2xl">
+                      <Flame className="w-8 h-8 text-white" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Study Time */}
+          <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-3xl overflow-hidden hover:shadow-2xl transform hover:-translate-y-1 transition-all duration-300">
+            <div className="bg-gradient-to-r from-purple-500 to-pink-600 p-1">
+              <div className="bg-white rounded-3xl p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-gray-600 mb-1">Study Time</p>
+                    <p className="text-3xl font-black text-gray-900">{stats.totalStudyTime}h</p>
+                    <p className="text-sm text-purple-600 font-medium flex items-center mt-1">
+                      <Clock className="w-4 h-4 mr-1" />
+                      This month
+                    </p>
+                  </div>
+                  <div className="relative">
+                    <div className="absolute inset-0 bg-purple-500 rounded-2xl blur-lg opacity-20"></div>
+                    <div className="relative bg-gradient-to-br from-purple-500 to-pink-600 p-4 rounded-2xl">
+                      <Clock className="w-8 h-8 text-white" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+          {/* Quick Actions */}
+          <div className="lg:col-span-1">
+            <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-3xl overflow-hidden h-full">
+              <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 p-1">
+                <div className="bg-white rounded-3xl h-full">
+                  <CardHeader className="pb-4">
+                    <CardTitle className="text-2xl font-bold text-gray-800 flex items-center">
+                      <Zap className="w-6 h-6 mr-2 text-yellow-500" />
+                      Quick Actions
+                    </CardTitle>
+                    <CardDescription className="text-gray-600">
+                      Jump into your learning activities
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <Link href="/dashboard/upload">
+                    <div className="group p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-200 hover:border-blue-300 transition-all duration-300 hover:shadow-lg cursor-pointer">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-blue-500 rounded-xl blur-md opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
+                              <div className="relative bg-blue-500 p-3 rounded-xl">
+                                <Upload className="w-5 h-5 text-white" />
+                              </div>
+                            </div>
+                            <div className="ml-3">
+                              <h4 className="font-semibold text-gray-800">Upload PDF</h4>
+                              <p className="text-sm text-gray-600">Create tests from documents</p>
+                            </div>
                           </div>
-                          <div>
-                            <h3 className="font-semibold text-white text-lg">{test.title}</h3>
-                            <div className="flex items-center space-x-2 mt-2">
-                              {Array.isArray(test.subjects) && test.subjects.length > 0 && (
-                                <Badge variant="secondary" className="bg-white/10 text-gray-300 border-white/20">
-                                  {test.subjects.join(', ')} {/* Display subjects */}
+                          <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors duration-300" />
+                        </div>
+                      </div>
+                    </Link>
+
+                    <Link href="/test/create">
+                      <div className="group p-4 bg-gradient-to-r from-green-50 to-emerald-50 rounded-2xl border border-green-200 hover:border-green-300 transition-all duration-300 hover:shadow-lg cursor-pointer">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-green-500 rounded-xl blur-md opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
+                              <div className="relative bg-green-500 p-3 rounded-xl">
+                                <Plus className="w-5 h-5 text-white" />
+                              </div>
+                            </div>
+                            <div className="ml-3">
+                              <h4 className="font-semibold text-gray-800">Create Test</h4>
+                              <p className="text-sm text-gray-600">Build custom assessments</p>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-green-500 transition-colors duration-300" />
+                        </div>
+                      </div>
+                    </Link>
+
+                    <Link href="/dashboard/tests">
+                      <div className="group p-4 bg-gradient-to-r from-purple-50 to-pink-50 rounded-2xl border border-purple-200 hover:border-purple-300 transition-all duration-300 hover:shadow-lg cursor-pointer">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-purple-500 rounded-xl blur-md opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
+                              <div className="relative bg-purple-500 p-3 rounded-xl">
+                                <BookOpen className="w-5 h-5 text-white" />
+                              </div>
+                            </div>
+                            <div className="ml-3">
+                              <h4 className="font-semibold text-gray-800">My Tests</h4>
+                              <p className="text-sm text-gray-600">View all your tests</p>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-purple-500 transition-colors duration-300" />
+                        </div>
+                      </div>
+                    </Link>
+
+                    <Link href="/dashboard/analytics">
+                      <div className="group p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl border border-orange-200 hover:border-orange-300 transition-all duration-300 hover:shadow-lg cursor-pointer">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-orange-500 rounded-xl blur-md opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
+                              <div className="relative bg-orange-500 p-3 rounded-xl">
+                                <BarChart3 className="w-5 h-5 text-white" />
+                              </div>
+                            </div>
+                            <div className="ml-3">
+                              <h4 className="font-semibold text-gray-800">Analytics</h4>
+                              <p className="text-sm text-gray-600">Track your progress</p>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-orange-500 transition-colors duration-300" />
+                        </div>
+                      </div>
+                    </Link>                    <Link href="/dashboard/analytics">
+                      <div className="group p-4 bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl border border-orange-200 hover:border-orange-300 transition-all duration-300 hover:shadow-lg cursor-pointer">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-orange-500 rounded-xl blur-md opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
+                              <div className="relative bg-orange-500 p-3 rounded-xl">
+                                <BarChart3 className="w-5 h-5 text-white" />
+                              </div>
+                            </div>
+                            <div className="ml-3">
+                              <h4 className="font-semibold text-gray-800">Analytics</h4>
+                              <p className="text-sm text-gray-600">Track your progress</p>
+                            </div>
+                          </div>
+                          <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-orange-500 transition-colors duration-300" />
+                        </div>
+                      </div>
+                    </Link>
+
+                    {/* ADD THIS NEW TO-DO SECTION */}
+                    <Link href="/dashboard/todo">
+                      <div className="group p-4 bg-gradient-to-r from-teal-50 to-cyan-50 rounded-2xl border border-teal-200 hover:border-teal-300 transition-all duration-300 hover:shadow-lg cursor-pointer">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center">
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-teal-500 rounded-xl blur-md opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
+                              <div className="relative bg-teal-500 p-3 rounded-xl">
+                                <CheckCircle className="w-5 h-5 text-white" />
+                              </div>
+                            </div>
+                            <div className="ml-3">
+                              <h4 className="font-semibold text-gray-800">To-Do List</h4>
+                              <p className="text-sm text-gray-600">Manage study tasks</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center">
+                            <Badge variant="secondary" className="mr-2 text-xs">3 pending</Badge>
+                            <ChevronRight className="w-5 h-5 text-gray-400 group-hover:text-teal-500 transition-colors duration-300" />
+                          </div>
+                        </div>
+                      </div>
+                    </Link>
+
+                                         {/* ADD THIS NEW CALENDAR SECTION */}
+                     <div className="group p-4 bg-gradient-to-r from-rose-50 to-pink-50 rounded-2xl border border-rose-200 hover:border-rose-300 transition-all duration-300 hover:shadow-lg cursor-pointer">
+                       <div className="flex items-center justify-between mb-3">
+                         <div className="flex items-center">
+                           <div className="relative">
+                             <div className="absolute inset-0 bg-rose-500 rounded-xl blur-md opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
+                             <div className="relative bg-rose-500 p-3 rounded-xl">
+                               <Calendar className="w-5 h-5 text-white" />
+                             </div>
+                           </div>
+                           <div className="ml-3">
+                             <h4 className="font-semibold text-gray-800">Quick Calendar</h4>
+                             <p className="text-sm text-gray-600">Today&apos;s schedule</p>
+                           </div>
+                         </div>
+                       </div>
+                       
+                       {/* Mini Calendar Widget */}
+                       <div className="bg-white/70 rounded-xl p-3 border border-rose-100">
+                         <div className="text-center mb-2">
+                           <p className="text-sm font-semibold text-gray-800">
+                             {new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                           </p>
+                         </div>
+                         <div className="grid grid-cols-7 gap-1 text-xs">
+                           {/* Fixed: Use unique keys for day headers */}
+                           {[
+                             { key: 'sun', label: 'S' },
+                             { key: 'mon', label: 'M' },
+                             { key: 'tue', label: 'T' },
+                             { key: 'wed', label: 'W' },
+                             { key: 'thu', label: 'T' },
+                             { key: 'fri', label: 'F' },
+                             { key: 'sat', label: 'S' }
+                           ].map((day) => (
+                             <div key={day.key} className="text-center text-gray-500 font-medium p-1">
+                               {day.label}
+                             </div>
+                           ))}
+                           {/* Fixed: Use proper unique keys for calendar dates */}
+                           {Array.from({ length: 35 }, (_, i) => {
+                             const date = new Date();
+                             const firstDay = new Date(date.getFullYear(), date.getMonth(), 1);
+                             const startDate = new Date(firstDay);
+                             startDate.setDate(startDate.getDate() - firstDay.getDay());
+                             const currentDate = new Date(startDate);
+                             currentDate.setDate(currentDate.getDate() + i);
+                             const isToday = currentDate.toDateString() === new Date().toDateString();
+                             const isCurrentMonth = currentDate.getMonth() === date.getMonth();
+                             
+                             return (
+                               <div
+                                 key={`calendar-${currentDate.getFullYear()}-${currentDate.getMonth()}-${currentDate.getDate()}-${i}`}
+                                 className={`text-center p-1 rounded text-xs cursor-pointer transition-colors duration-200 ${
+                                   isToday
+                                     ? 'bg-rose-500 text-white font-bold'
+                                     : isCurrentMonth
+                                     ? 'text-gray-700 hover:bg-rose-100'
+                                     : 'text-gray-300'
+                                 }`}
+                               >
+                                 {currentDate.getDate()}
+                               </div>
+                             );
+                           })}
+                         </div>
+                         <div className="mt-3 space-y-1">
+                           <div className="flex items-center text-xs text-gray-600">
+                             <div className="w-2 h-2 bg-blue-500 rounded-full mr-2"></div>
+                             <span>Physics Test - 2:00 PM</span>
+                           </div>
+                           <div className="flex items-center text-xs text-gray-600">
+                             <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                             <span>Study Session - 4:00 PM</span>
+                           </div>
+                         </div>
+                       </div>
+                     </div>
+                   </CardContent>
+                 </div>
+               </div>
+             </Card>
+           </div>
+
+          {/* Recent Activity */}
+          <div className="lg:col-span-2">
+            <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-3xl overflow-hidden h-full">
+              <div className="bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 p-1">
+                <div className="bg-white rounded-3xl h-full">
+                  <CardHeader className="pb-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="text-2xl font-bold text-gray-800 flex items-center">
+                          <Activity className="w-6 h-6 mr-2 text-blue-500" />
+                          Recent Activity
+                        </CardTitle>
+                        <CardDescription className="text-gray-600">
+                          Your latest test performances
+                        </CardDescription>
+                      </div>
+                      <Link href="/dashboard/results">
+                        <Button variant="outline" className="rounded-xl">
+                          View All
+                          <ArrowRight className="w-4 h-4 ml-2" />
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    {recentTests.length > 0 ? (
+                      <div className="space-y-4">
+                        {recentTests.map((test) => (
+                          <div key={test.id} className="group p-6 bg-gradient-to-r from-gray-50 to-blue-50 rounded-2xl border border-gray-200 hover:border-blue-300 transition-all duration-300 hover:shadow-lg">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div className="relative">
+                                  <div className={`absolute inset-0 rounded-xl blur-md opacity-20 ${
+                                    test.score >= 80 ? 'bg-green-500' : test.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                                  }`}></div>
+                                  <div className={`relative p-3 rounded-xl ${
+                                    test.score >= 80 ? 'bg-green-500' : test.score >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                                  }`}>
+                                    {test.score >= 80 ? (
+                                      <Trophy className="w-5 h-5 text-white" />
+                                    ) : test.score >= 60 ? (
+                                      <Star className="w-5 h-5 text-white" />
+                                    ) : (
+                                      <Target className="w-5 h-5 text-white" />
+                                    )}
+                                  </div>
+                                </div>
+                                <div className="ml-4">
+                                  <h4 className="font-semibold text-gray-800 text-lg">{test.title}</h4>
+                                  <div className="flex items-center space-x-4 mt-1">
+                                    <p className="text-sm text-gray-600">
+                                      Score: <span className="font-semibold">{test.score}%</span>
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      Questions: {test.totalQuestions}
+                                    </p>
+                                    <p className="text-sm text-gray-600">
+                                      Duration: {test.duration}m
+                                    </p>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="text-right">
+                                <Badge variant={test.score >= 80 ? "default" : test.score >= 60 ? "secondary" : "destructive"} className="mb-2">
+                                  {test.score >= 80 ? "Excellent" : test.score >= 60 ? "Good" : "Needs Work"}
                                 </Badge>
-                              )}
-                              <Badge className={getDifficultyColor(test.difficulty_level)}>
-                                {test.difficulty_level}
+                                <p className="text-sm text-gray-500">
+                                  {new Date(test.completedAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                            </div>
+                            
+                            {/* Progress Bar */}
+                            <div className="mt-4">
+                              <div className="flex justify-between text-sm text-gray-600 mb-2">
+                                <span>Performance</span>
+                                <span>{test.score}%</span>
+                              </div>
+                              <Progress 
+                                value={test.score} 
+                                className="h-2 bg-gray-200"
+                              />
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12">
+                        <div className="relative inline-block mb-4">
+                          <div className="absolute inset-0 bg-gray-300 rounded-full blur-lg opacity-20"></div>
+                          <div className="relative bg-gray-300 p-6 rounded-full">
+                            <BookOpen className="w-12 h-12 text-gray-500" />
+                          </div>
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-800 mb-2">No tests taken yet</h3>
+                        <p className="text-gray-600 mb-6">Start your learning journey by taking your first test!</p>
+                        <Link href="/test/create">
+                          <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white px-6 py-3 rounded-xl">
+                            <Plus className="w-4 h-4 mr-2" />
+                            Create Your First Test
+                          </Button>
+                        </Link>
+                      </div>
+                    )}
+                  </CardContent>
+                </div>
+              </div>
+            </Card>
+          </div>
+        </div>
+
+        {/* Bottom Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+          {/* Performance Chart */}
+          <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-3xl overflow-hidden">
+            <div className="bg-gradient-to-r from-emerald-500 to-teal-600 p-1">
+              <div className="bg-white rounded-3xl">
+                <CardHeader>
+                  <CardTitle className="text-2xl font-bold text-gray-800 flex items-center">
+                    <LineChart className="w-6 h-6 mr-2 text-emerald-500" />
+                    Performance Trends
+                  </CardTitle>
+                  <CardDescription className="text-gray-600">
+                    Your progress over the last 30 days
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-64 bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl flex items-center justify-center border border-emerald-200">
+                    <div className="text-center">
+                      <PieChart className="w-16 h-16 text-emerald-500 mx-auto mb-4" />
+                      <p className="text-gray-600 font-medium">Performance Chart</p>
+                      <p className="text-sm text-gray-500">Coming Soon</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </div>
+            </div>
+          </Card>
+
+          {/* Upcoming Tests */}
+          <Card className="bg-white/80 backdrop-blur-xl border-0 shadow-xl rounded-3xl overflow-hidden">
+            <div className="bg-gradient-to-r from-violet-500 to-purple-600 p-1">
+              <div className="bg-white rounded-3xl">
+                <CardHeader>
+                  <CardTitle className="text-2xl font-bold text-gray-800 flex items-center">
+                    <Calendar className="w-6 h-6 mr-2 text-violet-500" />
+                    Upcoming Tests
+                  </CardTitle>
+                  <CardDescription className="text-gray-600">
+                    Tests scheduled for this week
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {upcomingTests.length > 0 ? (
+                    <div className="space-y-4">
+                      {upcomingTests.map((test) => (
+                        <div key={test.id} className="p-4 bg-gradient-to-r from-violet-50 to-purple-50 rounded-2xl border border-violet-200">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h4 className="font-semibold text-gray-800">{test.title}</h4>
+                              <p className="text-sm text-gray-600 mt-1">
+                                {test.questionCount} questions • {test.difficulty} difficulty
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-medium text-violet-600">
+                                {new Date(test.scheduledFor).toLocaleDateString()}
+                              </p>
+                              <Badge variant="outline" className="mt-1">
+                                Scheduled
                               </Badge>
-                              <span className="text-gray-400 text-sm">• {test.duration_minutes} min</span>
-                              <span className="text-gray-400 text-sm">• {test.total_questions} questions</span>
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center space-x-2 flex-shrink-0">
-                          <Link href={`/test/${test.id}/start`}> {/* Link to the test taking page */}
-                            <Button className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white py-2 px-4 rounded-xl text-md font-semibold shadow-md hover:shadow-lg transition-all duration-300">
-                              <Play className="w-4 h-4 mr-2" />
-                              Start Test
-                            </Button>
-                          </Link>
-                          <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10 rounded-xl shadow-sm hover:shadow-md">
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))
+                      ))}
+                    </div>
                   ) : (
-                    <p className="text-gray-400 text-center p-6">No available tests matching your criteria.</p>
+                    <div className="text-center py-8">
+                      <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                      <p className="text-gray-600">No upcoming tests scheduled</p>
+                    </div>
                   )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-6">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              {/* Subject Performance Chart */}
-              <Card className="bg-white/10 backdrop-blur-xl border-white/20 rounded-xl shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-white">Subject Performance</CardTitle>
-                  <CardDescription className="text-gray-300">
-                    Your scores across different subjects
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {performanceAnalytics.length > 0 ? (
-                      performanceAnalytics.map((pa) => (
-                        <div key={pa.id} className="space-y-2 p-4 bg-white/5 rounded-lg border border-white/10">
-                          <div className="flex justify-between text-sm">
-                            <span className="text-white">{pa.subjects?.name || 'Unknown'}</span>
-                            <span className="text-gray-300">{pa.accuracy_percentage}%</span>
-                          </div>
-                          <Progress value={pa.accuracy_percentage} className="h-2 bg-white/20" />
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-400 text-center">No subject performance data. Complete some tests!</p>
-                    )}
-                  </div>
                 </CardContent>
-              </Card>
-
-              {/* Test History */}
-              <Card className="bg-white/10 backdrop-blur-xl border-white/20 rounded-xl shadow-lg">
-                <CardHeader>
-                  <CardTitle className="text-white">Test History</CardTitle>
-                  <CardDescription className="text-gray-300">
-                    Your recent test performance
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {completedTests.length > 0 ? (
-                      completedTests.map((attempt) => (
-                        <div key={attempt.id} className="flex items-center justify-between p-4 bg-white/5 rounded-lg border border-white/10">
-                          <div>
-                            <h4 className="font-medium text-white">{attempt.tests?.title || 'Unknown Test'}</h4>
-                            <p className="text-sm text-gray-400">{attempt.completed_at ? new Date(attempt.completed_at).toLocaleDateString() : 'N/A'}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className={`font-bold ${getScoreColor(attempt.score)}`}>
-                              {attempt.score}% ({getScoreGrade(attempt.score)})
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {attempt.time_taken_minutes !== null && attempt.tests?.duration_minutes !== null ? `${attempt.time_taken_minutes}min / ${attempt.tests?.duration_minutes}min` : 'N/A'}
-                            </p>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <p className="text-gray-400 text-center">No test history available.</p>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              </div>
             </div>
-          </TabsContent>
-
-          {/* Achievements Tab */}
-          <TabsContent value="achievements" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Placeholder Achievements - You'd fetch these from a database if implemented */}
-              <Card className="bg-white/10 backdrop-blur-xl border-white/20 rounded-xl shadow-lg">
-                <CardContent className="p-6 text-center">
-                  <div className="w-16 h-16 bg-yellow-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Trophy className="w-8 h-8 text-yellow-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">First Test Completed!</h3>
-                  <p className="text-gray-300 text-sm">
-                    {completedTests.length > 0 ? 'Achieved!' : 'Complete your first test to earn this!'}
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/10 backdrop-blur-xl border-white/20 rounded-xl shadow-lg">
-                <CardContent className="p-6 text-center">
-                  <div className="w-16 h-16 bg-blue-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Zap className="w-8 h-8 text-blue-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Learning Streak</h3>
-                  <p className="text-gray-300 text-sm">
-                    Keep studying consistently! (Requires custom logic)
-                  </p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/10 backdrop-blur-xl border-white/20 rounded-xl shadow-lg">
-                <CardContent className="p-6 text-center">
-                  <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <Star className="w-8 h-8 text-green-400" />
-                  </div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Subject Master</h3>
-                  <p className="text-gray-300 text-sm">
-                    {performanceAnalytics.some(p => p.accuracy_percentage >= 90) ? 'Achieved 90%+ in a subject!' : 'Achieve 90%+ in any subject!'}
-                  </p>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+          </Card>
+        </div>
       </div>
+
+      {/* Custom Animations */}
+      <style jsx>{`
+        @keyframes blob {
+          0% {
+            transform: translate(0px, 0px) scale(1);
+          }
+          33% {
+            transform: translate(30px, -50px) scale(1.1);
+          }
+          66% {
+            transform: translate(-20px, 20px) scale(0.9);
+          }
+          100% {
+            transform: translate(0px, 0px) scale(1);
+          }
+        }
+        
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+        
+        @keyframes shimmer {
+          0% {
+            transform: translateX(-100%);
+          }
+          100% {
+            transform: translateX(100%);
+          }
+        }
+        
+        .animate-shimmer {
+          animation: shimmer 2s infinite;
+        }
+        
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(20px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-fade-in {
+          animation: fadeIn 0.5s ease-out forwards;
+        }
+        
+        .hover\\:scale-102:hover {
+          transform: scale(1.02);
+        }
+        
+        /* Gradient text animation */
+        @keyframes gradient {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
+        }
+        
+        .animate-gradient {
+          background-size: 200% 200%;
+          animation: gradient 3s ease infinite;
+        }
+        
+        /* Pulse glow effect */
+        @keyframes pulse-glow {
+          0%, 100% {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+          }
+          50% {
+            box-shadow: 0 0 40px rgba(59, 130, 246, 0.6);
+          }
+        }
+        
+        .animate-pulse-glow {
+          animation: pulse-glow 2s ease-in-out infinite;
+        }
+        
+        /* Floating animation */
+        @keyframes float {
+          0%, 100% {
+            transform: translateY(0px);
+          }
+          50% {
+            transform: translateY(-10px);
+          }
+        }
+        
+        .animate-float {
+          animation: float 3s ease-in-out infinite;
+        }
+        
+        /* Bounce in animation */
+        @keyframes bounceIn {
+          0% {
+            opacity: 0;
+            transform: scale(0.3);
+          }
+          50% {
+            opacity: 1;
+            transform: scale(1.05);
+          }
+          70% {
+            transform: scale(0.9);
+          }
+          100% {
+            opacity: 1;
+            transform: scale(1);
+          }
+        }
+        
+        .animate-bounce-in {
+          animation: bounceIn 0.6s ease-out;
+        }
+        
+        /* Slide up animation */
+        @keyframes slideUp {
+          from {
+            opacity: 0;
+            transform: translateY(30px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        
+        .animate-slide-up {
+          animation: slideUp 0.5s ease-out;
+        }
+        
+        /* Hover glow effect */
+        .hover-glow:hover {
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1), 0 0 0 1px rgba(255, 255, 255, 0.1);
+        }
+        
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 6px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: #f1f5f9;
+          border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
+          border-radius: 10px;
+        }
+        
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: linear-gradient(to bottom, #2563eb, #7c3aed);
+        }
+      `}</style>
     </div>
   )
 }
