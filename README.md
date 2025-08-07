@@ -4,7 +4,7 @@ An AI-powered test preparation platform designed for JEE and NEET aspirants. Upl
 
 ## ✨ Features
 
-- 📄 **PDF Upload & Processing**: Upload previous year question papers
+- 📄 **PDF Upload add Processing**: Upload previous year question papers
 - 🤖 **AI Question Extraction**: Automatically extract questions from PDFs
 - 📝 **Custom Test Generation**: Create tests with adjustable difficulty levels
 - 📊 **Performance Analytics**: Track your progress across subjects and topics
