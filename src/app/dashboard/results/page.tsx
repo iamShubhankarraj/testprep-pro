@@ -1,34 +1,15 @@
 'use client'
 
-import { useState, useEffect } from 'react'
 import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Trophy, ArrowLeft, Loader2 } from 'lucide-react'
 import Link from 'next/link'
 
-// Force dynamic rendering
-export const dynamic = 'force-dynamic'
-
-export default function ResultsPage() {
-  const [mounted, setMounted] = useState(false)
+// The actual results component that uses useSearchParams
+function ResultsContent() {
   const searchParams = useSearchParams()
-  
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  if (!mounted) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
-          <p className="text-gray-600">Loading results...</p>
-        </div>
-      </div>
-    )
-  }
-
   const attemptId = searchParams.get('attemptId')
   const testId = searchParams.get('testId')
 
@@ -74,5 +55,26 @@ export default function ResultsPage() {
         </Card>
       </div>
     </div>
+  )
+}
+
+// Loading fallback component
+function ResultsLoading() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="text-center">
+        <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-blue-600" />
+        <p className="text-gray-600">Loading results...</p>
+      </div>
+    </div>
+  )
+}
+
+// Main component with Suspense boundary
+export default function ResultsPage() {
+  return (
+    <Suspense fallback={<ResultsLoading />}>
+      <ResultsContent />
+    </Suspense>
   )
 }
