@@ -19,31 +19,33 @@ export class EnhancedQuestionExtractor {
   private apiKey: string;
 
   constructor() {
-    // Manually read API key from .env.local
+    // Prefer environment variable for Vercel; fallback to .env.local for local dev
+    const envApiKey = process.env.GOOGLE_GEMINI_API_KEY;
+    if (envApiKey && envApiKey.trim() !== '') {
+      this.apiKey = envApiKey.trim();
+      console.log('✅ Gemini API key loaded from environment');
+      return;
+    }
+
     const envPath = join(process.cwd(), '.env.local');
-    
-    if (!existsSync(envPath)) {
-      throw new Error('.env.local file not found');
-    }
-    
-    const envContent = readFileSync(envPath, 'utf8');
-    
-    const envVars: Record<string, string> = {};
-    envContent.split('\n').forEach(line => {
-      const [key, ...valueParts] = line.split('=');
-      if (key && valueParts.length > 0) {
-        envVars[key.trim()] = valueParts.join('=').trim();
+    if (existsSync(envPath)) {
+      const envContent = readFileSync(envPath, 'utf8');
+      const envVars: Record<string, string> = {};
+      envContent.split('\n').forEach(line => {
+        const [key, ...valueParts] = line.split('=');
+        if (key && valueParts.length > 0) {
+          envVars[key.trim()] = valueParts.join('=').trim();
+        }
+      });
+      const fileKey = envVars['GOOGLE_GEMINI_API_KEY'];
+      if (fileKey && fileKey.trim() !== '') {
+        this.apiKey = fileKey.trim();
+        console.log('✅ Gemini API key loaded from .env.local');
+        return;
       }
-    });
-    
-    const apiKey = envVars['GOOGLE_GEMINI_API_KEY'];
-    
-    if (!apiKey || apiKey.trim() === '') {
-      throw new Error('GOOGLE_GEMINI_API_KEY not found in .env.local file');
     }
-    
-    this.apiKey = apiKey.trim();
-    console.log('✅ Gemini API key loaded successfully');
+
+    throw new Error('GOOGLE_GEMINI_API_KEY not found. Set it in environment variables (e.g., Vercel Project Settings) or in a local .env.local for development.');
   }
 
   async extractQuestions(ocrText: string): Promise<ExtractedQuestion[]> {
