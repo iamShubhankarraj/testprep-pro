@@ -13,33 +13,31 @@ export class GoogleVisionClient {
   private apiKey: string;
 
   constructor() {
-    // Prefer environment variable (works on Vercel). Fallback to .env.local for local dev.
-    const envApiKey = process.env.GOOGLE_VISION_API_KEY;
-    if (envApiKey && envApiKey.trim() !== '') {
-      this.apiKey = envApiKey.trim();
-      console.log('✅ Google Vision API key loaded from environment');
-      return;
-    }
-
+    // Manually read API key from .env.local (since we know this works)
     const envPath = path.join(process.cwd(), '.env.local');
-    if (fs.existsSync(envPath)) {
-      const envContent = fs.readFileSync(envPath, 'utf8');
-      const envVars: Record<string, string> = {};
-      envContent.split('\n').forEach(line => {
-        const [key, ...valueParts] = line.split('=');
-        if (key && valueParts.length > 0) {
-          envVars[key.trim()] = valueParts.join('=').trim();
-        }
-      });
-      const fileKey = envVars['GOOGLE_VISION_API_KEY'];
-      if (fileKey && fileKey.trim() !== '') {
-        this.apiKey = fileKey.trim();
-        console.log('✅ Google Vision API key loaded from .env.local');
-        return;
-      }
+    
+    if (!fs.existsSync(envPath)) {
+      throw new Error('.env.local file not found');
     }
-
-    throw new Error('GOOGLE_VISION_API_KEY not found. Set it in environment variables (e.g., Vercel Project Settings) or in a local .env.local for development.');
+    
+    const envContent = fs.readFileSync(envPath, 'utf8');
+    
+    const envVars: Record<string, string> = {};
+    envContent.split('\n').forEach(line => {
+      const [key, ...valueParts] = line.split('=');
+      if (key && valueParts.length > 0) {
+        envVars[key.trim()] = valueParts.join('=').trim();
+      }
+    });
+    
+    const apiKey = envVars['GOOGLE_VISION_API_KEY'];
+    
+    if (!apiKey || apiKey.trim() === '') {
+      throw new Error('GOOGLE_VISION_API_KEY not found in .env.local file');
+    }
+    
+    this.apiKey = apiKey.trim();
+    console.log('✅ Google Vision API key loaded successfully');
   }
 
   async processImage(imageBuffer: Buffer, pageNumber: number): Promise<OCRResult> {
