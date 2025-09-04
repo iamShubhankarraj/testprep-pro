@@ -94,12 +94,13 @@ export class PDFToImageConverter {
           fit: 'inside', 
           withoutEnlargement: true 
         })
-        .normalize()        // Improve contrast automatically
-        .sharpen()         // Enhance text clarity
         .modulate({
-          brightness: 1.1   // Slightly brighten
+          brightness: 1.1,
+          contrast: 1.2
         })
-        .png({ quality: 95 })
+        .grayscale()        // Convert to grayscale
+        .normalize()        // Improve contrast automatically
+        .sharpen(1)         // Apply a moderate sharpen
         .toBuffer();
     } catch (error) {
       console.error('Image enhancement failed for:', imagePath, error);
@@ -126,3 +127,4 @@ export class PDFToImageConverter {
     }
   }
 }
+

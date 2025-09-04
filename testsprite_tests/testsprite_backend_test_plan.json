@@ -1,0 +1,27 @@
+[
+  {
+    "id": "TC001",
+    "title": "process pdf file and extract questions",
+    "description": "Test the POST /api/process-pdf endpoint to ensure it correctly processes a valid PDF file, extracts multiple choice questions using OCR and AI, and returns the expected success response with accurate counts of questions extracted and stored."
+  },
+  {
+    "id": "TC002",
+    "title": "handle invalid pdf file upload",
+    "description": "Test the POST /api/process-pdf endpoint with invalid inputs such as non-PDF files, files larger than 50MB, or missing required fields to verify that the API returns appropriate 400 error responses with clear error messages."
+  },
+  {
+    "id": "TC003",
+    "title": "get pdf processing status successfully",
+    "description": "Test the GET /api/process-pdf endpoint with valid pdfId and userId query parameters to verify that it returns the current processing status, total questions extracted, and timestamps correctly in a successful 200 response."
+  },
+  {
+    "id": "TC004",
+    "title": "handle missing parameters in status request",
+    "description": "Test the GET /api/process-pdf endpoint with missing pdfId or userId parameters to ensure the API returns a 400 error indicating missing parameters."
+  },
+  {
+    "id": "TC005",
+    "title": "handle non existent pdf in status request",
+    "description": "Test the GET /api/process-pdf endpoint with a pdfId that does not exist in the system to verify that it returns a 404 error indicating the PDF was not found."
+  }
+]

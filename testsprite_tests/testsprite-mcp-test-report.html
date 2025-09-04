@@ -1,0 +1,151 @@
+
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="UTF-8" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <title>Markdown Preview</title>
+      <style>
+        body {
+          font-family: sans-serif;
+          padding: 40px;
+          line-height: 1.6;
+          background: #fdfdfd;
+          color: #333;
+        }
+        pre {
+          background: #f4f4f4;
+          padding: 10px;
+          border-radius: 5px;
+          overflow-x: auto;
+        }
+        code {
+          font-family: monospace;
+          background: #eee;
+          padding: 2px 4px;
+        }
+        table {
+          border-collapse: collapse;
+          width: 100%;
+          margin-top: 20px;
+        }
+        th, td {
+          border: 1px solid #ccc;
+          padding: 8px 12px;
+          text-align: left;
+        }
+        th {
+          background-color: #f2f2f2;
+          font-weight: bold;
+        }
+      </style>
+    </head>
+    <body>
+      <h1>TestSprite AI Testing Report(MCP)</h1>
+<hr>
+<h2>1️⃣ Document Metadata</h2>
+<ul>
+<li><strong>Project Name:</strong> testprep-pro</li>
+<li><strong>Version:</strong> 0.1.0</li>
+<li><strong>Date:</strong> 2025-08-18</li>
+<li><strong>Prepared by:</strong> TestSprite AI Team</li>
+</ul>
+<hr>
+<h2>2️⃣ Requirement Validation Summary</h2>
+<h3>Requirement: PDF Processing API</h3>
+<ul>
+<li><strong>Description:</strong> Handles PDF upload, extraction of questions using OCR and AI, and status retrieval for processing.</li>
+</ul>
+<h4>Test 1</h4>
+<ul>
+<li><strong>Test ID:</strong> TC001</li>
+<li><strong>Test Name:</strong> process pdf file and extract questions</li>
+<li><strong>Test Code:</strong> <a href="./TC001_process_pdf_file_and_extract_questions.py">TC001_process_pdf_file_and_extract_questions.py</a></li>
+<li><strong>Test Error:</strong> N/A</li>
+<li><strong>Test Visualization and Result:</strong> <a href="https://www.testsprite.com/dashboard/mcp/tests/64df0624-fe28-4035-a65a-e1d98c7b09f2/00406587-f753-44e1-8051-833015a9deda">View Result</a></li>
+<li><strong>Status:</strong> ✅ Passed</li>
+<li><strong>Severity:</strong> Low</li>
+<li><strong>Analysis / Findings:</strong> The POST /api/process-pdf endpoint correctly processes valid PDF files, accurately extracting multiple choice questions using OCR and AI, and returns a success response with correct question counts. Functionality is implemented correctly. For further improvement, consider adding handling for edge cases such as PDFs with unusual formatting or encrypted PDFs to enhance robustness.</li>
+</ul>
+<hr>
+<h4>Test 2</h4>
+<ul>
+<li><strong>Test ID:</strong> TC002</li>
+<li><strong>Test Name:</strong> handle invalid pdf file upload</li>
+<li><strong>Test Code:</strong> <a href="./TC002_handle_invalid_pdf_file_upload.py">TC002_handle_invalid_pdf_file_upload.py</a></li>
+<li><strong>Test Error:</strong> N/A</li>
+<li><strong>Test Visualization and Result:</strong> <a href="https://www.testsprite.com/dashboard/mcp/tests/64df0624-fe28-4035-a65a-e1d98c7b09f2/1bec83e0-a9d9-4261-8a0f-d14078d6cb9e">View Result</a></li>
+<li><strong>Status:</strong> ✅ Passed</li>
+<li><strong>Severity:</strong> Low</li>
+<li><strong>Analysis / Findings:</strong> The POST /api/process-pdf endpoint appropriately handles invalid inputs including non-PDF files, oversized files, and missing required fields by returning clear 400 error responses. The input validation and error handling are functioning correctly. To improve, ensure error messages are user-friendly and consistent, and consider rate limiting or additional security checks on input sizes.</li>
+</ul>
+<hr>
+<h4>Test 3</h4>
+<ul>
+<li><strong>Test ID:</strong> TC003</li>
+<li><strong>Test Name:</strong> get pdf processing status successfully</li>
+<li><strong>Test Code:</strong> <a href="./TC003_get_pdf_processing_status_successfully.py">TC003_get_pdf_processing_status_successfully.py</a></li>
+<li><strong>Test Error:</strong> N/A</li>
+<li><strong>Test Visualization and Result:</strong> <a href="https://www.testsprite.com/dashboard/mcp/tests/64df0624-fe28-4035-a65a-e1d98c7b09f2/f8907d51-c2ea-4661-a7d6-7e65150ddda2">View Result</a></li>
+<li><strong>Status:</strong> ✅ Passed</li>
+<li><strong>Severity:</strong> Low</li>
+<li><strong>Analysis / Findings:</strong> The GET /api/process-pdf endpoint correctly returns the processing status, total questions extracted, and relevant timestamps for valid pdfId and userId query parameters. The status retrieval functionality works as expected. Potential improvement includes enhancing the response with more detailed progress indicators or estimated time remaining if applicable.</li>
+</ul>
+<hr>
+<h4>Test 4</h4>
+<ul>
+<li><strong>Test ID:</strong> TC004</li>
+<li><strong>Test Name:</strong> handle missing parameters in status request</li>
+<li><strong>Test Code:</strong> <a href="./TC004_handle_missing_parameters_in_status_request.py">TC004_handle_missing_parameters_in_status_request.py</a></li>
+<li><strong>Test Error:</strong> N/A</li>
+<li><strong>Test Visualization and Result:</strong> <a href="https://www.testsprite.com/dashboard/mcp/tests/64df0624-fe28-4035-a65a-e1d98c7b09f2/9b85a0c6-d81a-43bb-8153-f29701dbd916">View Result</a></li>
+<li><strong>Status:</strong> ✅ Passed</li>
+<li><strong>Severity:</strong> Low</li>
+<li><strong>Analysis / Findings:</strong> The GET /api/process-pdf endpoint returns a 400 error when required parameters (pdfId or userId) are missing, which enforces correct API usage. Parameter validation is properly implemented. Consider adding documentation or client-side validation to prevent missing parameters at the request origin.</li>
+</ul>
+<hr>
+<h4>Test 5</h4>
+<ul>
+<li><strong>Test ID:</strong> TC005</li>
+<li><strong>Test Name:</strong> handle non existent pdf in status request</li>
+<li><strong>Test Code:</strong> <a href="./TC005_handle_non_existent_pdf_in_status_request.py">TC005_handle_non_existent_pdf_in_status_request.py</a></li>
+<li><strong>Test Error:</strong> N/A</li>
+<li><strong>Test Visualization and Result:</strong> <a href="https://www.testsprite.com/dashboard/mcp/tests/64df0624-fe28-4035-a65a-e1d98c7b09f2/48e54b25-4e49-4696-96fb-8dd1f217b921">View Result</a></li>
+<li><strong>Status:</strong> ✅ Passed</li>
+<li><strong>Severity:</strong> Low</li>
+<li><strong>Analysis / Findings:</strong> The GET /api/process-pdf endpoint returns a 404 error appropriately when queried with a pdfId that does not exist in the system, thus handling not found scenarios correctly. The handling of non-existent resources is correct. Consider adding logging for such requests to monitor for potential misuse or issues with pdfId generation.</li>
+</ul>
+<hr>
+<h2>3️⃣ Coverage &amp; Matching Metrics</h2>
+<ul>
+<li>100% of product requirements tested</li>
+<li>100% of tests passed</li>
+<li><strong>Key gaps / risks:</strong></li>
+</ul>
+<blockquote>
+<p>All tested endpoints passed. No critical gaps found. Consider further edge case and security testing for production readiness.</p>
+</blockquote>
+<table>
+<thead>
+<tr>
+<th>Requirement</th>
+<th>Total Tests</th>
+<th>✅ Passed</th>
+<th>⚠️ Partial</th>
+<th>❌ Failed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>PDF Processing API</td>
+<td>5</td>
+<td>5</td>
+<td>0</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+
+    </body>
+    </html>
+  
